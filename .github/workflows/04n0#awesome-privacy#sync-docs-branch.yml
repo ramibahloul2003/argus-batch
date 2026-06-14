@@ -1,0 +1,33 @@
+# Action to automatically pull content of main branch into gh-pages
+# whenever main content is modified. Site will then be auto-deployed
+
+name: 🔄 Sync main to Website
+on:
+  workflow_dispatch: # Manual dispatch
+  schedule:
+    - cron: '0 5 * * 6' # Every Saturday morning.
+
+jobs:
+  copy-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config --global user.email "alicia-gh-bot@mail.as93.net"
+          git config --global user.name "Liss-Bot"
+
+      - name: Copy README.md to gh-pages
+        run: |
+          git fetch
+          git checkout gh-pages
+          git checkout main -- .github/README.md
+          mv .github/README.md README.md
+          git add README.md
+          git commit -m "Update README.md from main"
+          git push origin gh-pages
+

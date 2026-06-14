@@ -1,0 +1,33 @@
+name: Vendor API Merge master
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  build:
+    runs-on: self-hosted
+
+    strategy:
+      matrix:
+        node-version: [15.x]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js ${{ matrix.node-version }}
+
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - run: git pull
+      - run: npm i --silent
+      - run: npm test
+      - run: rm -rf /var/www/vendorApi
+      - run: cp -r ./ /var/www/vendorApi
+      - run: cp -r /var/www/shared/.env /var/www/vendorApi/.env
+      - run: pm2 restart all
+
+    env:
+      AUTH_SECRET: aSuperSecret4testing
+      NODE_DATABASE_URL: mongodb://localhost:27017

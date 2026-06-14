@@ -1,0 +1,29 @@
+name: Compile
+
+on:
+  pull_request:
+    branches: edited
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+      
+      - name: Environments
+        run: |
+          echo ::set-env name=SM_VERSION::1.10
+      
+      - name: SourceMod
+        run: |
+          bash scripts/sourcemod.sh
+      
+      - name: Install
+        run: |
+          bash scripts/install.sh
+      
+      - name: Compile
+        run: |
+          bash scripts/compile.sh

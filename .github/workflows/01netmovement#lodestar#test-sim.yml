@@ -1,0 +1,52 @@
+name: Sim tests
+
+on:
+  push:
+    # We intentionally don't run push on feature branches. See PR for rational.
+    branches: [unstable, stable]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GETH_DOCKER_IMAGE: ethereum/client-go:v1.10.25
+  NETHERMIND_DOCKER_IMAGE: nethermind/nethermind:1.14.5
+
+jobs:
+  tests-sim:
+    name: Sim tests
+    runs-on: ubuntu-latest
+    steps:
+      # <common-build> - Uses YAML anchors in the future
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "lts/gallium"
+      - name: Node.js version
+        id: node
+        run: echo "::set-output name=v8CppApiVersion::$(node --print "process.versions.modules")"
+      - name: Restore dependencies
+        uses: actions/cache@master
+        id: cache-deps
+        with:
+          path: |
+            node_modules
+            packages/*/node_modules
+          key: ${{ runner.os }}-${{ steps.node.outputs.v8CppApiVersion }}-${{ hashFiles('**/yarn.lock', '**/package.json') }}
+      - name: Install & build
+        if: steps.cache-deps.outputs.cache-hit != 'true'
+        run: yarn install --frozen-lockfile --ignore-optional && yarn build
+      - name: Build
+        run: yarn build
+        if: steps.cache-deps.outputs.cache-hit == 'true'
+      # </common-build>
+
+      - name: Simulation tests for CLI
+        run: yarn test:sim
+        working-directory: packages/cli
+
+      - name: Upload debug log test files for "packages/cli"
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: debug-test-logs-cli
+          path: packages/cli/test-logs
