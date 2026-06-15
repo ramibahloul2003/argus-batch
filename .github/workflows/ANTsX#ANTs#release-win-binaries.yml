@@ -1,0 +1,99 @@
+# Build for Windows using visual studio
+name: Native Windows release binaries
+
+# Controls when the action will run. Triggers the workflow on push
+on:
+  release:
+    types: [created]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+        - {
+            name: "Windows-22",
+            os: "windows-2022",
+            vs: "2019",
+            build_type: "Release"
+          }
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.ref }}
+      # Set up vs studio. Use default windows shell (powershell) not bash,
+      # to avoid conflicts with link executable
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ runner.arch }}
+          vsversion: ${{ matrix.vs }}
+      - name: Define build environment variables
+        shell: pwsh
+        run: |
+          echo "github.event.action: ${{ github.event.action }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          $antsVersion = "${{ github.ref_name }}"
+          if ($antsVersion -match '^v\d') {
+            $antsVersion = $antsVersion.Substring(1)
+          }
+          $artifact = "${{ runner.temp }}/ants-${antsVersion}-${{ matrix.config.os }}-${{ runner.arch }}-VS${{ matrix.config.vs }}.zip"
+          $name = [System.IO.Path]::GetFileNameWithoutExtension($artifact)
+          echo "ANTS_VERSION=$antsVersion" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "ARTIFACT=$artifact" | Out-File -FilePath $env:GITHUB_ENV -Append
+          echo "ARTIFACT_FILE_NAME_NO_EXT=$name" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Configure
+        working-directory: ${{ runner.temp }}
+        run: |
+          mkdir build
+          cd build
+          cmake `
+            -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} `
+            -DBUILD_TESTING=ON `
+            -DRUN_SHORT_TESTS=ON `
+            -DRUN_LONG_TESTS=OFF `
+            -DANTS_INSTALL_BIN_ONLY=ON `
+            -DCMAKE_INSTALL_PREFIX:PATH=${{ runner.temp }}/install/ants-${{ env.ANTS_VERSION }} `
+            ${{ github.workspace }}
+      - name: Build
+        working-directory: ${{ runner.temp }}
+        run: |
+          cd build
+          cmake --build . --config ${{ matrix.config.build_type }} --parallel
+      - name: Test
+        working-directory: ${{ runner.temp }}
+        run: |
+          cd build/ANTS-build
+          ctest -C release
+      - name: Install
+        working-directory: ${{ runner.temp }}
+        run: |
+          cd build/ANTS-build
+          cmake --install .
+      - name: Pack
+        working-directory: ${{ runner.temp }}
+        run: |
+          cd install
+          7z a ${{ env.ARTIFACT }} .
+      - name: Upload artifact for pre-release testing
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f
+        with:
+            path: ${{ env.ARTIFACT }}
+            name: ${{ env.ARTIFACT_FILE_NAME_NO_EXT }}
+            retention-days: 7
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        # Previously was using actions/upload-release-asset@v1 , but this had some
+        # errors with large files
+        uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd
+        with:
+          allowUpdates: true
+          omitBodyDuringUpdate: true
+          omitNameDuringUpdate: true
+          artifacts: "${{ env.ARTIFACT }}"
+          artifactContentType: application/zip
+          token: ${{ secrets.GITHUB_TOKEN }}

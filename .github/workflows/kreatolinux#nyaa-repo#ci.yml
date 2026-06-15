@@ -1,0 +1,330 @@
+name: CI
+
+on:
+  schedule:
+    - cron: '0 0 * * WED'
+  workflow_dispatch:
+    inputs:
+      package:
+        description: 'Space-separated list of packages to build'
+        required: false
+        default: ''
+      image:
+        description: 'Container image to use'
+        required: false
+        default: 'builder-repo'
+        type: choice
+        options:
+          - builder-repo
+          - builder-systemd
+          - builder
+      image_sha:
+        description: 'Optional: Specific SHA256 digest for the docker image (e.g., sha256:abc123...)'
+        required: false
+        default: ''
+      force_build:
+        description: 'Force build even if no changes detected'
+        required: false
+        default: false
+        type: boolean
+      llvm:
+        description: 'Enable LLVM and set clang as compiler'
+        required: false
+        default: false
+        type: boolean
+      enable_upterm_ssh:
+        description: 'Enable upterm SSH session if build fails'
+        required: false
+        default: false
+        type: boolean
+      disable_force_install_all:
+        description: 'Disable forceInstallAll flag during build'
+        required: false
+        default: false
+        type: boolean
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  init:
+    runs-on: ubuntu-latest
+    container: ghcr.io/kreatolinux/builder
+    outputs:
+      phase1_matrix: ${{ steps.compute-matrix.outputs.phase1_matrix }}
+      phase2_matrix: ${{ steps.compute-matrix.outputs.phase2_matrix }}
+      phase3_matrix: ${{ steps.compute-matrix.outputs.phase3_matrix }}
+      phase4_matrix: ${{ steps.compute-matrix.outputs.phase4_matrix }}
+      phase5_matrix: ${{ steps.compute-matrix.outputs.phase5_matrix }}
+      push: ${{ steps.compute-matrix.outputs.push }}
+      should_build: ${{ steps.compute-matrix.outputs.should_build }}
+      runfiles: ${{ steps.check-sums.outputs.runfiles }}
+      image: ${{ steps.compute-matrix.outputs.image }}
+      image_sha: ${{ steps.compute-matrix.outputs.image_sha }}
+      force_build: ${{ steps.compute-matrix.outputs.force_build }}
+      llvm: ${{ steps.compute-matrix.outputs.llvm }}
+      enable_upterm_ssh: ${{ steps.compute-matrix.outputs.enable_upterm_ssh }}
+      disable_force_install_all: ${{ steps.compute-matrix.outputs.disable_force_install_all }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          fetch-depth: 0
+     
+
+      - name: Compute matrix and flags
+        id: compute-matrix
+        env:
+          PACKAGE_INPUT: ${{ github.event.inputs.package }}
+        run: |
+          set -ex
+          cd "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE" || true
+          PUSH="true"
+          EVENT_NAME="${{ github.event_name }}"
+          SHOULD_BUILD="true"
+
+          echo "image=${{ github.event.inputs.image || 'builder-repo' }}" >> $GITHUB_OUTPUT
+          echo "image_sha=${{ github.event.inputs.image_sha || '' }}" >> $GITHUB_OUTPUT
+          echo "force_build=${{ github.event.inputs.force_build || 'false' }}" >> $GITHUB_OUTPUT
+          echo "llvm=${{ github.event.inputs.llvm || 'false' }}" >> $GITHUB_OUTPUT
+          echo "enable_upterm_ssh=${{ github.event.inputs.enable_upterm_ssh || 'false' }}" >> $GITHUB_OUTPUT
+          echo "disable_force_install_all=${{ github.event.inputs.disable_force_install_all || 'false' }}" >> $GITHUB_OUTPUT
+
+          if [ -n "${PACKAGE_INPUT:-}" ]; then
+            PUSH="false"
+            MATRIX='{"include":['
+            SEP=""
+            for pkg in $PACKAGE_INPUT; do
+              MATRIX="$MATRIX$SEP{\"packages\":\"$pkg\"}"
+              SEP=",";
+            done
+            MATRIX="$MATRIX]}"
+            echo "phase1_matrix=$MATRIX" >> $GITHUB_OUTPUT
+            echo "phase2_matrix=" >> $GITHUB_OUTPUT
+            echo "phase3_matrix=" >> $GITHUB_OUTPUT
+            echo "phase4_matrix=" >> $GITHUB_OUTPUT
+            echo "phase5_matrix=" >> $GITHUB_OUTPUT
+            echo "push=$PUSH" >> $GITHUB_OUTPUT
+            echo "should_build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          ALL_RUNS=$(find "$GITHUB_WORKSPACE" -mindepth 2 -maxdepth 2 -type f -name run | sed "s#^$GITHUB_WORKSPACE/##" | sort || true)
+          ALL_PACKAGES=$(echo "$ALL_RUNS" | awk -F/ '{print $1}' | sort -u | awk 'NF')
+          MAX_PER_PHASE=250
+
+          TOTAL_PACKAGES=$(echo "$ALL_PACKAGES" | wc -l | tr -d ' ')
+          echo "Total packages: $TOTAL_PACKAGES"
+
+          PHASE_COUNT=5
+          for i in $(seq 1 $PHASE_COUNT); do
+            START=$(((i - 1) * MAX_PER_PHASE + 1))
+            END=$((i * MAX_PER_PHASE))
+            PHASE_PKGS=$(echo "$ALL_PACKAGES" | sed -n "${START},${END}p")
+            
+            if [ -n "$PHASE_PKGS" ]; then
+              MATRIX='{"include":['
+              SEP=""
+              for pkg in $PHASE_PKGS; do
+                MATRIX="$MATRIX$SEP{\"packages\":\"$pkg\"}"
+                SEP=",";
+              done
+              MATRIX="$MATRIX]}"
+              echo "phase${i}_matrix=$MATRIX" >> $GITHUB_OUTPUT
+            else
+              echo "phase${i}_matrix=" >> $GITHUB_OUTPUT
+            fi
+          done
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            PUSH="false"
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA" || true
+            CHANGED_FILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" || true)
+            CHANGED_RUNFILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- '*/run' || true)
+          elif [ "$EVENT_NAME" = "push" ]; then
+            BEFORE_SHA="${{ github.event.before }}"
+            if git cat-file -e "$BEFORE_SHA^{commit}" 2>/dev/null; then
+              CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "${{ github.sha }}" || true)
+              CHANGED_RUNFILES=$(git diff --name-only "$BEFORE_SHA" "${{ github.sha }}" -- '*/run' || true)
+            else
+              CHANGED_FILES=$(git show --name-only --pretty=format: "${{ github.sha }}" | tail -n +2 || true)
+              CHANGED_RUNFILES=$(git diff-tree --no-commit-id --name-only -r "${{ github.sha }}" -- '*/run' || true)
+            fi
+          else
+            CHANGED_FILES=""
+            CHANGED_RUNFILES=""
+          fi
+
+          RUNFILES_FROM_FILES=$(echo "$CHANGED_FILES" | awk 'NF' | sed 's#^\./##' | grep -E '^[^/]+/run$' || true)
+          RUNFILES_FROM_PATHSPEC=$(echo "$CHANGED_RUNFILES" | awk 'NF' | sed 's#^\./##' | grep -E '^[^/]+/run$' || true)
+          RUNFILES=$(printf "%s\n%s\n" "$RUNFILES_FROM_FILES" "$RUNFILES_FROM_PATHSPEC" | sort -u)
+          RUN_PKG_COUNT=$(echo "$RUNFILES" | awk -F/ '{print $1}' | sort -u | awk 'NF' | wc -l | tr -d ' ')
+          TOTAL_CHANGED_COUNT=$(echo "$CHANGED_FILES" | awk 'NF' | wc -l | tr -d ' ')
+          SINGLE_RUN_PKG=$(echo "$RUNFILES" | head -n1 | cut -d/ -f1)
+
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            if [ "$RUN_PKG_COUNT" = "1" ]; then
+              for i in $(seq 2 $PHASE_COUNT); do
+                echo "phase${i}_matrix=" >> $GITHUB_OUTPUT
+              done
+              echo "phase1_matrix={\"include\":[{\"packages\":\"$SINGLE_RUN_PKG\"}]}" >> $GITHUB_OUTPUT
+            else
+              SHOULD_BUILD="false"
+            fi
+          elif [ "$EVENT_NAME" = "push" ] && [ "${{ github.ref }}" = "refs/heads/master" ]; then
+            if [ "$RUN_PKG_COUNT" = "1" ] && [ "$TOTAL_CHANGED_COUNT" = "1" ]; then
+              for i in $(seq 2 $PHASE_COUNT); do
+                echo "phase${i}_matrix=" >> $GITHUB_OUTPUT
+              done
+              echo "phase1_matrix={\"include\":[{\"packages\":\"$SINGLE_RUN_PKG\"}]}" >> $GITHUB_OUTPUT
+            else
+              SHOULD_BUILD="false"
+            fi
+          elif [ "$EVENT_NAME" = "schedule" ]; then
+            : # keep defaults
+          fi
+
+          echo "push=$PUSH" >> $GITHUB_OUTPUT
+          echo "should_build=$SHOULD_BUILD" >> $GITHUB_OUTPUT
+
+      - name: Check if sums need updating
+        id: check-sums
+        run: |
+          set -euo pipefail
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "runfiles=" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          git fetch --no-tags --depth=1 origin "$BASE_SHA" "$HEAD_SHA" || true
+          CHANGED_RUNFILES=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- '*/run' || true)
+          need=false
+          RUNFILES_NEED=""
+          for f in $CHANGED_RUNFILES; do
+            if git diff -U0 "$BASE_SHA" "$HEAD_SHA" -- "$f" | grep -E '^\+VERSION=' >/dev/null; then
+              if ! git diff -U0 "$BASE_SHA" "$HEAD_SHA" -- "$f" | grep -E '^(\+SHA256SUM=|\+SHA512SUM=|\+B2SUM=)' >/dev/null; then
+                need=true
+                RUNFILES_NEED="${RUNFILES_NEED}"$'\n'"$f"
+              fi
+            fi
+          done
+          echo "runfiles<<EOF" >> $GITHUB_OUTPUT
+          printf "%s\n" "$RUNFILES_NEED" | awk 'NF' >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+  update-sums:
+    if: needs.init.outputs.runfiles != ''
+    needs: [init]
+    uses: ./.github/workflows/update-sums.yml
+    with:
+      runfiles: ${{ needs.init.outputs.runfiles }}
+
+  build_phase1:
+    if: always() && !cancelled() && needs.init.outputs.phase1_matrix != '' && (needs.init.outputs.should_build == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [init, update-sums]
+    uses: ./.github/workflows/ci-build.yml
+    with:
+      matrix: ${{ needs.init.outputs.phase1_matrix }}
+      push: ${{ needs.init.outputs.push }}
+      phase_name: "Phase 1"
+      image: ${{ needs.init.outputs.image }}
+      image_sha: ${{ needs.init.outputs.image_sha }}
+      force_build: ${{ needs.init.outputs.force_build == 'true' }}
+      llvm: ${{ needs.init.outputs.llvm == 'true' }}
+      enable_upterm_ssh: ${{ needs.init.outputs.enable_upterm_ssh == 'true' }}
+      disable_force_install_all: ${{ needs.init.outputs.disable_force_install_all == 'true' }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
+      AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+      AWS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+
+  build_phase2:
+    if: always() && !cancelled() && needs.init.outputs.phase2_matrix != '' && (needs.init.outputs.should_build == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [init, update-sums]
+    uses: ./.github/workflows/ci-build.yml
+    with:
+      matrix: ${{ needs.init.outputs.phase2_matrix }}
+      push: ${{ needs.init.outputs.push }}
+      phase_name: "Phase 2"
+      image: ${{ needs.init.outputs.image }}
+      image_sha: ${{ needs.init.outputs.image_sha }}
+      force_build: ${{ needs.init.outputs.force_build == 'true' }}
+      llvm: ${{ needs.init.outputs.llvm == 'true' }}
+      enable_upterm_ssh: ${{ needs.init.outputs.enable_upterm_ssh == 'true' }}
+      disable_force_install_all: ${{ needs.init.outputs.disable_force_install_all == 'true' }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
+      AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+      AWS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+
+  build_phase3:
+    if: always() && !cancelled() && needs.init.outputs.phase3_matrix != '' && (needs.init.outputs.should_build == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [init, update-sums]
+    uses: ./.github/workflows/ci-build.yml
+    with:
+      matrix: ${{ needs.init.outputs.phase3_matrix }}
+      push: ${{ needs.init.outputs.push }}
+      phase_name: "Phase 3"
+      image: ${{ needs.init.outputs.image }}
+      image_sha: ${{ needs.init.outputs.image_sha }}
+      force_build: ${{ needs.init.outputs.force_build == 'true' }}
+      llvm: ${{ needs.init.outputs.llvm == 'true' }}
+      enable_upterm_ssh: ${{ needs.init.outputs.enable_upterm_ssh == 'true' }}
+      disable_force_install_all: ${{ needs.init.outputs.disable_force_install_all == 'true' }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
+      AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+      AWS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+
+  build_phase4:
+    if: always() && !cancelled() && needs.init.outputs.phase4_matrix != '' && (needs.init.outputs.should_build == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [init, update-sums]
+    uses: ./.github/workflows/ci-build.yml
+    with:
+      matrix: ${{ needs.init.outputs.phase4_matrix }}
+      push: ${{ needs.init.outputs.push }}
+      phase_name: "Phase 4"
+      image: ${{ needs.init.outputs.image }}
+      image_sha: ${{ needs.init.outputs.image_sha }}
+      force_build: ${{ needs.init.outputs.force_build == 'true' }}
+      llvm: ${{ needs.init.outputs.llvm == 'true' }}
+      enable_upterm_ssh: ${{ needs.init.outputs.enable_upterm_ssh == 'true' }}
+      disable_force_install_all: ${{ needs.init.outputs.disable_force_install_all == 'true' }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
+      AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+      AWS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
+
+  build_phase5:
+    if: always() && !cancelled() && needs.init.outputs.phase5_matrix != '' && (needs.init.outputs.should_build == 'true' || github.event_name == 'workflow_dispatch')
+    needs: [init, update-sums]
+    uses: ./.github/workflows/ci-build.yml
+    with:
+      matrix: ${{ needs.init.outputs.phase5_matrix }}
+      push: ${{ needs.init.outputs.push }}
+      phase_name: "Phase 5"
+      image: ${{ needs.init.outputs.image }}
+      image_sha: ${{ needs.init.outputs.image_sha }}
+      force_build: ${{ needs.init.outputs.force_build == 'true' }}
+      llvm: ${{ needs.init.outputs.llvm == 'true' }}
+      enable_upterm_ssh: ${{ needs.init.outputs.enable_upterm_ssh == 'true' }}
+      disable_force_install_all: ${{ needs.init.outputs.disable_force_install_all == 'true' }}
+    secrets:
+      GH_PAT: ${{ secrets.GH_PAT }}
+      AWS_ENDPOINT: ${{ secrets.AWS_ENDPOINT }}
+      AWS_KEY_ID: ${{ secrets.AWS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_BUCKET: ${{ secrets.AWS_BUCKET }}
