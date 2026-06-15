@@ -1,0 +1,45 @@
+name: Check Documentation Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ dev ]
+    paths:
+      - 'documentation/**'
+      - 'pages/**'
+
+permissions: read-all
+
+env:
+  DOCFX_VERSION: 2.78.5
+  DOTNET_VERSION: 10.x
+
+jobs:
+  docfx:
+    
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: master
+          path: master
+      - uses: actions/checkout@v6
+        with:
+          ref: dev
+          path: dev
+      - uses: actions/checkout@v6
+        with:
+          ref: gh-pages
+          path: gh-pages
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+      
+      - name: Install DocFX
+        run: dotnet tool install -g docfx --version ${{ env.DOCFX_VERSION }}
+      
+      - name: Build docs
+        shell: pwsh
+        run: |
+          ./dev/pages/Build-Site.ps1

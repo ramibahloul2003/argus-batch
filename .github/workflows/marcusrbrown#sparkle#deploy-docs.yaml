@@ -1,0 +1,228 @@
+---
+name: Deploy Documentation
+
+# Deploy Astro Starlight documentation site to GitHub Pages
+# Triggers on pushes to main branch and allows manual deployment
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - docs/**
+      - packages/**
+      - .github/workflows/deploy-docs.yaml
+  workflow_dispatch:
+    inputs:
+      force-rebuild:
+        description: Force rebuild documentation (skip cache)
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: deploy-docs-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+
+      - name: Setup CI environment
+        uses: ./.github/actions/setup-ci
+
+      - name: Cache generated documentation
+        id: cache-generated-docs
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: docs-generated-${{ runner.os }}-${{ hashFiles('packages/*/src/**/*.{ts,tsx}', 'docs/scripts/**/*.ts', 'docs/typedoc.json') }}
+          restore-keys: |
+            docs-generated-${{ runner.os }}-
+          path: |
+            docs/src/content/docs/api/**
+            docs/src/content/docs/components/**
+            docs/src/generated/**
+            docs/.astro/**
+
+      - name: Cache Astro build artifacts
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          key: astro-build-${{ runner.os }}-${{ hashFiles('docs/**/*.{astro,md,mdx}', 'docs/astro.config.mjs', 'docs/package.json') }}
+          restore-keys: |
+            astro-build-${{ runner.os }}-
+          path: |
+            docs/.astro
+            docs/node_modules/.astro
+            docs/node_modules/.vite
+
+      - name: Report cache status
+        run: |
+          echo "### 💾 Cache Status" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Cache Type | Status |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------------|--------|" >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "${{ steps.cache-generated-docs.outputs.cache-hit }}" = "true" ]; then
+            echo "| Generated Documentation | ✅ Cache Hit |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "| Generated Documentation | ⚠️ Cache Miss |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "_Cache keys are automatically invalidated when source files change_" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+        shell: bash -Eeuo pipefail {0}
+
+      - name: Generate and build documentation
+        run: |
+          # Generate documentation from source packages and build site with optimizations
+          export NODE_ENV=production
+          export NODE_OPTIONS="--max-old-space-size=4096" # Increase heap size for large builds
+          export TURBO_TOKEN="${{ secrets.TURBO_TOKEN || '' }}"
+          export TURBO_TEAM="${{ secrets.TURBO_TEAM || '' }}"
+
+          # Report Turborepo caching configuration to summary
+          if [ -n "$TURBO_TOKEN" ] && [ -n "$TURBO_TEAM" ]; then
+            echo "| Turborepo Remote Cache | ✅ Enabled |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "| Turborepo Remote Cache | ℹ️ Not Configured |" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # Build UI packages first to ensure docs generation has latest code
+          pnpm --filter @sparkle/ui... build
+
+          if [ "${{ github.event.inputs.force-rebuild }}" = "true" ]; then
+            pnpm --filter @sparkle/docs build:force
+          else
+            pnpm --filter @sparkle/docs build
+          fi
+
+          # Verify build output exists
+          if [ ! -d "./docs/dist" ]; then
+            echo "Error: Documentation build output not found at ./docs/dist"
+            exit 1
+          fi
+
+          # Report build metrics
+          echo "📊 Build Output Summary:"
+          du -sh ./docs/dist
+          echo "Total files: $(find ./docs/dist -type f | wc -l)"
+          echo "JavaScript chunks: $(find ./docs/dist -name '*.js' -o -name '*.mjs' | wc -l)"
+        env:
+          NODE_ENV: production
+        shell: bash -Eeuo pipefail {0}
+
+      - name: Analyze build performance
+        run: |
+          # Calculate build metrics for reporting
+          TOTAL_SIZE=$(du -sb ./docs/dist | cut -f1)
+          TOTAL_SIZE_MB=$(echo "scale=2; $TOTAL_SIZE / 1024 / 1024" | bc)
+          FILE_COUNT=$(find ./docs/dist -type f | wc -l)
+          JS_COUNT=$(find ./docs/dist -name '*.js' -o -name '*.mjs' | wc -l)
+
+          # Find largest chunks
+          echo "📦 Largest JavaScript chunks:"
+          find ./docs/dist -name '*.js' -o -name '*.mjs' | xargs du -h | sort -rh | head -5
+
+          # Write to GitHub Actions summary
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ### 📊 Build Performance Metrics
+
+          | Metric | Value |
+          |--------|-------|
+          | Total Bundle Size | ${TOTAL_SIZE_MB}MB |
+          | Total Files | $FILE_COUNT |
+          | JavaScript Chunks | $JS_COUNT |
+
+          #### 📦 Top 5 Largest Chunks
+          $(find ./docs/dist -name '*.js' -o -name '*.mjs' | xargs du -h | sort -rh | head -5 | awk '{print "- " $2 " (" $1 ")"}')
+
+          ---
+          EOF
+        # shell: bash -Eeuo pipefail {0}
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b # v5.0.0
+
+      - name: Upload documentation artifacts
+        uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4.0.0
+        with:
+          path: ./docs/dist
+          retention-days: 1
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+
+      - name: Generate job summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << 'EOF'
+          ## 🚀 Documentation Deployment Complete
+
+          **Deployment URL**: ${{ steps.deployment.outputs.page_url }}
+
+          **Build Information**:
+          - **Repository**: ${{ github.repository }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Commit**: ${{ github.sha }}
+          - **Actor**: @${{ github.actor }}
+          - **Force Rebuild**: ${{ github.event.inputs.force-rebuild || 'false' }}
+
+          **Status**: ✅ Successfully deployed
+
+          ---
+
+          Visit the documentation site at: https://sparkle.mrbro.dev
+          EOF
+        shell: bash -Eeuo pipefail {0}
+
+  notify-failure:
+    name: Notify on Failure
+    needs: [build, deploy]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: failure()
+    permissions:
+      contents: read
+    steps:
+      - name: Generate failure summary
+        run: |
+          cat >> "$GITHUB_STEP_SUMMARY" << 'EOF'
+          ## ❌ Documentation Deployment Failed
+
+          **Build Information**:
+          - **Repository**: ${{ github.repository }}
+          - **Branch**: ${{ github.ref_name }}
+          - **Commit**: ${{ github.sha }}
+          - **Actor**: @${{ github.actor }}
+          - **Workflow Run**: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+          **Status**: ❌ Deployment failed
+
+          Please check the workflow logs for detailed error information.
+          EOF
+        shell: bash -Eeuo pipefail {0}

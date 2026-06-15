@@ -1,0 +1,92 @@
+name: Gentoo Docker Image CI
+
+
+on:
+  push:
+    branches: [ "master" ]
+    paths:
+      - gentoo/Dockerfile
+      - .github/workflows/gentoo.yml
+  schedule:
+    - cron: 0 6 1 * *
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    #runs-on: self-hosted
+    timeout-minutes: 43200 # 720h
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        user: ["apnpucky"]
+        base: ["gentoo"]
+        image: [
+               "base",
+               "repo",
+               "ebuild-ci",
+               "rust",
+               "c",
+               "c-tools",
+               "llvm",
+               "boost",
+               "python",
+               "lua",
+               "perl",
+               "test",
+#               "doc",
+#               "dev",
+#               "apn",
+#               "hep-forge",
+#               "ansible",
+#               "latex",
+#               "apn-unstable",
+#               "hep-forge-unstable",
+#               "prefix",
+                ]
+        platforms: [
+          "linux/amd64" 
+          #"linux/amd64,linux/arm/v7,linux/arm64,linux/riscv64" 
+          #,linux/ppc64le, #,linux/s390x,
+        ]
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v3
+      - 
+        name: Get current time
+        uses: josStorer/get-current-time@v2.0.2
+        id: current-time
+        with:
+          format: YYYYMMDDHHSS
+      -
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      -
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+        with:
+           config: .github/buildkitd.toml
+      -
+        name: Login to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      -
+        name: ${{ matrix.base }}-${{ matrix.image }}
+        uses: docker/build-push-action@v3
+        with:
+          file: gentoo/Dockerfile
+          platforms: ${{ matrix.platforms }}
+          push: true
+          target: ${{ matrix.base }}-${{ matrix.image }}
+          tags: |
+            ${{ matrix.user }}/${{ matrix.base }}-${{ matrix.image }}:latest
+            ${{ matrix.user }}/${{ matrix.base }}-${{ matrix.image }}:${{ github.sha }}-latest
+            ${{ matrix.user }}/${{ matrix.base }}-${{ matrix.image }}:${{ steps.current-time.outputs.formattedTime }}-latest

@@ -1,0 +1,64 @@
+name: Test image
+
+on:
+  workflow_dispatch:
+    inputs:
+      mariadb_image:
+        description: "MariaDB image used to run the tests"
+        required: true
+        type: string
+      mariadb_version:
+        description: "MariaDB version related by image"
+        required: true
+        type: string
+
+jobs:
+  test:
+    name: 'Test "${{ inputs.mariadb_image }}" image'
+    runs-on: ubuntu-latest
+    steps:
+      - name: MariaDB Version
+        run: |
+          docker run --rm ${{ inputs.mariadb_image }} mariadbd --version
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: "go.mod"
+          cache: true
+
+      - name: Cluster
+        run: |
+          make cluster
+          make install
+          make install-csi-hostpath
+          make install-minio
+          make install-cert-manager
+          make net
+          make install-azurite
+
+      - name: Integration tests
+        run: make test-int
+        env:
+          RELATED_IMAGE_MARIADB: "${{ inputs.mariadb_image }}"
+          RELATED_IMAGE_MARIADB_NAME: "mariadb"
+          MARIADB_DEFAULT_VERSION: "${{ inputs.mariadb_version }}"
+
+      - name: Tell the MariaDB Folks that failed
+        if: ${{ failure() && contains(inputs.mariadb_image, 'mariadb-foundation') }}
+        uses: zulip/github-actions-zulip/send-message@v2
+        with:
+          api-key: ${{ secrets.MARIADB_ZULIP_API_KEY }}
+          email: "mariadb-operator-bot@mariadb.zulipchat.com"
+          organization-url: "https://mariadb.zulipchat.com"
+          to: "Buildbot"
+          type: "stream"
+          topic: "CI - MariaDB Operator"
+          content: "There was an error running MariaDB Operator integration tests on ${{ inputs.mariadb_image }} version(${{ inputs.mariadb_version }}) - URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}."
+
+      - name: Post Test Debugging (on failure)
+        if: failure()
+        run: make dump

@@ -1,0 +1,67 @@
+name: Make image
+
+on:
+    release:
+        types: [published, edited]
+
+jobs:
+    build:
+        strategy:
+            fail-fast: true
+            matrix:
+               os: [windows-latest, ubuntu-latest, macOS-latest]
+               include:
+                    - os: windows-latest
+                      displayName: Windows
+                      prefix: win
+                      app-image: bsl-language-server
+                    - os: ubuntu-latest
+                      displayName: Linux
+                      prefix: nix
+                      app-image: bsl-language-server
+                    - os: macOS-latest
+                      displayName: MacOS
+                      prefix: mac
+                      app-image: bsl-language-server.app
+        runs-on: ${{ matrix.os }}
+        name: (${{ matrix.displayName }}) create image app version
+
+        steps:
+            - name: Checkout source
+              uses: actions/checkout@v5
+
+            - name: Set up JDK
+              uses: actions/setup-java@v4
+              with:
+                java-version: 23
+                distribution: 'temurin'
+                cache: gradle
+
+            - name: Build bootJar with Gradle
+              run: ./gradlew check bootJar
+
+            - name: Build jpackage application image
+              run: python .github/scripts/build-jpackage.py ${{ matrix.prefix }} ${{ matrix.app-image }}
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                name: bsl-language-server_${{ matrix.prefix }}.zip
+                path: ./${{ matrix.app-image }}
+
+            - name: Upload assets to release
+              uses: AButler/upload-release-assets@v3.0
+              with:
+                  files: './bsl-language-server_${{ matrix.prefix }}.zip'
+                  repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+            - name: Build with Gradle
+              if: matrix.prefix == 'nix'
+              run: ./gradlew build -x test
+
+            - name: Upload jar to release
+              if: matrix.prefix == 'nix'
+              uses: AButler/upload-release-assets@v3.0
+              with:
+                  files: './build/libs/*.jar'
+                  repo-token: ${{ secrets.GITHUB_TOKEN }}

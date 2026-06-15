@@ -1,0 +1,39 @@
+name: publish branch
+on:
+- workflow_dispatch
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          registry-url: 'https://npm.pkg.github.com'
+          cache: 'npm'
+
+      - name: install dependencies
+        run: npm ci
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build
+        run: npm run build
+
+      - name: publish on github
+        run: |
+          if jq --null-input --exit-status \
+              --argjson local "$(jq .version package.json)" \
+              --argjson published "$(npm view --json @navikt/bedriftsmeny versions)" \
+              '$published | map(. == $local) | any'
+          then
+              echo "Version already published. Nothing to do."
+          else
+              npm publish --access public
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

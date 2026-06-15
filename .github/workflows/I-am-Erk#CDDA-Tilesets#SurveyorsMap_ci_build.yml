@@ -1,0 +1,22 @@
+name: SurveyorsMap composer
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - 'gfx/SurveyorsMap/**'
+      - '.github/workflows/SurveyorsMap_ci_build.yml'
+  pull_request:
+    branches:
+      - master
+    paths:
+      - 'gfx/SurveyorsMap/**'
+      - '.github/workflows/SurveyorsMap_ci_build.yml'
+
+jobs:
+  build:
+    uses: ./.github/workflows/composer_template.yml
+    with:
+      tileset: SurveyorsMap
+      composer-args: --use-all

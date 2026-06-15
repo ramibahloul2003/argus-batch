@@ -1,0 +1,89 @@
+# This workflow will build a middleman project with bundle
+
+name: Build and Publish
+
+on:
+  push:
+    branches:
+      - master
+      # Push events to branches matching refs/heads/release-*
+      - 'release-*'
+
+permissions:
+  id-token: write
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RUN_EXTERNAL_CHECKS: true
+
+jobs:
+  complete_build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          bundler-cache: true # would run bundle install
+      - name: Run the build
+        run: bundle exec rake static_checks:all
+  push_to_gh_pages:
+    needs: complete_build
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PASSWORD: "${{ secrets.GITHUB_TOKEN }}"
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          bundler-cache: true # would run bundle install
+      - name: Set up user in git config
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+      - name: Set up upstream and publish to gh pages
+        run: |
+          git remote add upstream 'https://github-actions:${GITHUB_PASSWORD}@github.com/gocd/api.go.cd'
+          bundle exec rake publish --trace
+        env:
+          REMOTE_NAME: "upstream"
+          ALLOW_DIRTY: true
+  sync_to_s3:
+    needs: push_to_gh_pages
+    runs-on: ubuntu-latest
+    env:
+      S3_BUCKET: "${{ secrets.S3_BUCKET }}"
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+      - name: Configure aws credentials
+        uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
+        with:
+          role-to-assume: "${{ secrets.AWS_ROLE_TO_ASSUME }}"
+          aws-region: "${{ secrets.AWS_REGION }}"
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@afeafc3d1ab54a631816aba4c914a0081c12ff2f # v1.310.0
+        with:
+          bundler-cache: true # would run bundle install
+      - name: Upload to S3
+        run: bundle exec rake upload_to_s3

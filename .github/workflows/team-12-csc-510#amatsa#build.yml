@@ -1,0 +1,59 @@
+# Workflow name
+name: Build
+
+# Controls when the workflow will run
+on: [push]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    name: Build App
+    environment: dev
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version:
+          - '3.9'
+          - '3.10'
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python Dependencies
+        run: |
+          git config remote.origin.url 'https://{{ACCESS_TOKEN}}@github.com/team-12-csc-510/amatsa'
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install -e .
+
+      - name: Code quality checks
+        run: |
+            isort --check-only --profile black .
+            black --check .
+            flake8 --ignore D203 --exclude .venv,.git,__pycache__,docs/source/conf.py,old,build,dist --max-complexity 12 --max-line-length=88 --extend-ignore=E203
+            mypy src/
+            mypy tests/
+
+      - name: Run tests and coverage report
+        env:
+          ACCESS_KEY: ${{ secrets.ACCESS_KEY }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          REGION_NAME: ${{ secrets.REGION_NAME }}
+          SENDER: ${{ secrets.SENDER }}
+          TEST_RECEIVER1: ${{ secrets.TEST_RECEIVER1 }}
+          TEST_RECEIVER2: ${{ secrets.TEST_RECEIVER2 }}
+          CHARSET: ${{ secrets.CHARSET }}
+        run: |
+          coverage run --source=src --data-file tests/.coverage -m pytest -s
+          coverage xml --data-file tests/.coverage -o tests/coverage.xml
+          coverage report --data-file tests/.coverage -m
+
+      - name: Send coverage report
+        run: |
+          curl -Os https://uploader.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          ./codecov -t ${CODECOV_TOKEN}

@@ -1,0 +1,38 @@
+name: YAML lint
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - '**.yaml'
+      - '**.yml'
+  pull_request:
+    branches: ["main"]
+    paths:
+      - '**.yaml'
+      - '**.yml'
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: yaml-lint
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          config_data: |
+            extends: default
+            rules:
+              comments:
+                level: error
+              comments-indentation:
+                level: error
+              document-end: disable
+              document-start: disable
+              line-length: disable
+              truthy:
+                allowed-values: ['true', 'false', 'on']

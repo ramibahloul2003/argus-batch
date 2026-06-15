@@ -1,0 +1,94 @@
+name: Synchronize Releases
+
+on:
+  schedule:
+  - cron: "10,25,40,55 * * * *"
+  workflow_dispatch:
+
+jobs:
+
+  check_releases:
+    name: Compare latest release from remote repository
+    runs-on: ubuntu-latest
+    outputs:
+      new_release: ${{ steps.check_releases.outputs.release_tag }}
+    steps:
+    - name: Compare Releases
+      run: |
+        remote_release=$(gh api repos/ephemery-testnet/ephemery-genesis/releases/latest | jq .tag_name | tr -d '"')
+        local_release=$(gh api repos/$GITHUB_REPOSITORY/releases/latest | jq .tag_name | tr -d '"')
+
+        if [ "$remote_release" != "$local_release" ]; then 
+          echo "release_tag=${remote_release}" >> $GITHUB_OUTPUT
+        else
+          echo "release_tag=none" >> $GITHUB_OUTPUT
+        fi
+      id: check_releases
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  
+  sync_release:
+    name: Synchronize Release
+    needs: [check_releases]
+    if: needs.check_releases.outputs.new_release != 'none'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Create release
+      uses: actions/create-release@v1
+      id: create_release
+      with:
+        draft: false
+        prerelease: false
+        release_name: "${{ needs.check_releases.outputs.new_release }}"
+        tag_name: "${{ needs.check_releases.outputs.new_release }}"
+        body: |
+          Copied from https://github.com/ephemery-testnet/ephemery-genesis/releases/tag/${{ needs.check_releases.outputs.new_release }}
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Load release artifacts
+      run: |
+        wget https://github.com/ephemery-testnet/ephemery-genesis/releases/download/${{ needs.check_releases.outputs.new_release }}/testnet-all.tar.gz
+        wget https://github.com/ephemery-testnet/ephemery-genesis/releases/download/${{ needs.check_releases.outputs.new_release }}/config.yaml
+        wget https://github.com/ephemery-testnet/ephemery-genesis/releases/download/${{ needs.check_releases.outputs.new_release }}/genesis.json
+        wget https://github.com/ephemery-testnet/ephemery-genesis/releases/download/${{ needs.check_releases.outputs.new_release }}/genesis.ssz
+
+    - name: Upload full config artifact
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./testnet-all.tar.gz
+        asset_name: testnet-all.tar.gz
+        asset_content_type: application/gzip
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    
+    - name: Upload genesis.json artifact
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./genesis.json
+        asset_name: genesis.json
+        asset_content_type: application/json
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
+    - name: Upload config.yaml artifact
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./config.yaml
+        asset_name: config.yaml
+        asset_content_type: application/yaml
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    - name: Upload genesis.ssz artifact
+      uses: actions/upload-release-asset@v1
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./genesis.ssz
+        asset_name: genesis.ssz
+        asset_content_type: application/octet-stream
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+
