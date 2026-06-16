@@ -1,0 +1,59 @@
+name: Deploy to Firebase Hosting on merge
+"on":
+  push:
+    branches:
+      - master
+jobs:
+  unit_test:
+    runs-on: ubuntu-latest
+    env:
+      TEST_LLAMA_NODES_ID: ${{ secrets.LLAMA_NODES_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Installing Dependencies
+        run: yarn
+      - name: Running Unit Tests
+        run: yarn run test
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+      - name: Installing Dependencies
+        run: yarn
+      - name: Building App
+        run: yarn run build
+  deploy:
+    needs: [unit_test, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Installing Dependencies
+        run: yarn
+      - name: Building App
+        run: export NODE_OPTIONS=--openssl-legacy-provider && yarn run build
+      - name: Install Firebase Tools
+        run: npm install -g firebase-tools
+      - name: Deploying to Firebase
+        run: firebase deploy --token "${{ secrets.FIREBASE_SECRET }}"
+  localazy_upload:
+    needs: deploy
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Installing Dependencies
+        run: npm i -g @localazy/cli
+      - name: Upload Translations
+        run: localazy upload -w ${{ secrets.LOCALAZY_WRITE_KEY }} -r ${{ secrets.LOCALAZY_READ_KEY }}

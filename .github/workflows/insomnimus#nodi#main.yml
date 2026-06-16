@@ -1,0 +1,48 @@
+{
+  "name": "Main",
+  "on": [
+    "push",
+    "pull_request"
+  ],
+  "jobs": {
+    "tests": {
+      "name": "Tests",
+      "strategy": {
+        "matrix": {
+          "os": [
+            "macos-latest",
+            "windows-latest",
+            "ubuntu-latest"
+          ]
+        }
+      },
+      "runs-on": "${{ matrix.os }}",
+      "steps": [
+        {
+          "name": "Setup | Checkout",
+          "uses": "actions/checkout@v4"
+        },
+        {
+          "name": "Setup | Install Dependencies",
+          "if": "matrix.os == 'ubuntu-latest'",
+          "env": {
+            "DEBIAN_FRONTEND": "noninteractive"
+          },
+          "run": "sudo apt-get update && sudo apt-get install --no-install-recommends -y build-essential pkg-config libasound2-dev"
+        },
+        {
+          "name": "Setup | Rust",
+          "run": "rustup update && rustup component add clippy"
+        },
+        {
+          "name": "Test | Clippy",
+          "run": "cargo clippy --features midir"
+        },
+        {
+          "name": "Test | Test",
+          "run": "cargo test --features midir"
+        }
+      ]
+    }
+  }
+}

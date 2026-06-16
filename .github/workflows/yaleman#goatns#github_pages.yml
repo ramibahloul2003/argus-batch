@@ -1,0 +1,42 @@
+---
+name: GitHub Pages
+
+"on":
+  push:
+
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
+jobs:
+  build_book:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup deno
+        # Documentation: https://github.com/denoland/setup-deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Install just
+        uses: extractions/setup-just@v4
+      - name: Install protoc
+        run: sudo apt-get install -y protobuf-compiler
+      - name: Test document formatting
+        run: just book_format
+      - name: Build all the books
+        run: just build_book
+  deploy_book:
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'main' }}
+    needs:
+      - build_book
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

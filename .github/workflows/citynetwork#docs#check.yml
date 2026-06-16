@@ -1,0 +1,35 @@
+---
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+      - name: "Set up Python 3.14"
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+      - name: Install Python dependencies
+        run: |
+          pip install tox
+      - env:
+          DOCS_SITE_URL: "https://docs.cleura.cloud/${{ matrix.region }}"
+        name: "Check docs for ${{ matrix.region }}"
+        run: |
+          tox -e check-prod
+    strategy:
+      fail-fast: false
+      matrix:
+        region:
+          - 'kna1'
+          - 'sto2'
+          - 'fra1'
+
+name: check
+
+# We want to run this workflow every time we build the site.
+# In addition, we want to run it once a week on a schedule.
+'on':
+  schedule:
+    - cron: '0 12 * * 3'
+  workflow_dispatch:

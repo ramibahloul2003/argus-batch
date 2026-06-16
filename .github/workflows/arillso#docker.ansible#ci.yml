@@ -1,0 +1,378 @@
+---
+name: Continuous Integration
+
+"on":
+    push:
+        branches:
+            - main
+        paths-ignore:
+            - "**.md"
+            - "LICENSE"
+    pull_request:
+        branches:
+            - main
+        paths-ignore:
+            - "**.md"
+            - "LICENSE"
+    schedule:
+        - cron: "0 1 * * 3" # Wednesday at 1:00 UTC
+    workflow_dispatch:
+    workflow_call:
+        inputs:
+            upload-sarif:
+                description: "Upload SARIF results to GitHub Code Scanning"
+                type: boolean
+                default: true
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+permissions:
+    contents: read
+    security-events: write
+    actions: read
+    pull-requests: write
+    issues: read
+    id-token: write
+
+jobs:
+    security-secrets:
+        uses: arillso/.github/.github/workflows/security-secrets.yml@2026-06-02
+
+    claude-review:
+        uses: arillso/.github/.github/workflows/ai-claude-review.yml@2026-06-02
+        if: github.event_name == 'pull_request'
+        secrets:
+            CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+
+    lint:
+        name: Lint
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Install yamllint
+              run: pip install yamllint
+
+            - name: Lint YAML files
+              run: yamllint -c .yamllint.yml .
+
+            - name: Lint Dockerfile
+              uses: hadolint/hadolint-action@2332a7b74a6de0dda2e2221d575162eba76ba5e5 # v3.3.0
+              with:
+                  dockerfile: Dockerfile
+
+            - name: Lint shell scripts
+              run: shellcheck tests/**/*.sh .github/scripts/**/*.sh
+
+    prepare:
+        name: Prepare
+        runs-on: ubuntu-latest
+        needs: lint
+        outputs:
+            ansible_version: ${{ steps.get_version.outputs.version }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Extract Ansible Version
+              id: get_version
+              run: |
+                  version="$(grep '^ansible-core==' requirements.txt | cut -d'=' -f3)"
+                  echo "version=${version}" >> "$GITHUB_OUTPUT"
+                  echo "Ansible Version: ${version}"
+
+    build:
+        name: Build Container
+        runs-on: ubuntu-latest
+        needs: prepare
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4
+
+            - name: Build and export
+              uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf # v7
+              with:
+                  context: .
+                  build-args: ANSIBLE_VERSION=${{ needs.prepare.outputs.ansible_version }}
+                  tags: ansible:test
+                  outputs: type=docker,dest=/tmp/ansible-test.tar
+                  cache-from: type=registry,ref=ghcr.io/arillso/ansible-cache:latest
+                  cache-to: type=gha,mode=max
+                  provenance: false
+                  sbom: false
+
+            - name: Upload image artifact
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: ansible-test-image
+                  path: /tmp/ansible-test.tar
+                  retention-days: 1
+
+    structure-test:
+        name: Structure Test
+        runs-on: ubuntu-latest
+        needs: build
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Download image artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: ansible-test-image
+                  path: /tmp
+
+            - name: Load Docker image
+              run: docker load --input /tmp/ansible-test.tar
+
+            - name: Run Structure Tests
+              run: |
+                  docker run --rm \
+                    -v "$GITHUB_WORKSPACE/tests/structure/container-test.yml:/structure-test.yaml" \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    ghcr.io/googlecontainertools/container-structure-test:1.19.3 \
+                    test --image=ansible:test --config=/structure-test.yaml
+
+    security-test:
+        name: Security Test
+        runs-on: ubuntu-latest
+        needs: [build, structure-test]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Download image artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: ansible-test-image
+                  path: /tmp
+
+            - name: Load Docker image
+              run: docker load --input /tmp/ansible-test.tar
+
+            - name: Run Security Checks
+              run: |
+                  mkdir -p test-results
+                  docker run --rm -v "$GITHUB_WORKSPACE/tests/security:/tests" ansible:test \
+                  bash -c "bash /tests/container-hardening.sh || echo 'Security check returned warnings'" | tee test-results/security-check.log
+
+            - name: Trivy Vulnerability Scanner
+              uses: aquasecurity/trivy-action@v0.36.0
+              with:
+                  image-ref: "ansible:test"
+                  format: "sarif"
+                  output: "trivy-results.sarif"
+                  severity: "CRITICAL,HIGH"
+
+            - name: Upload Trivy scan results
+              if: ${{ inputs.upload-sarif != false }}
+              uses: github/codeql-action/upload-sarif@8aad20d150bbac5944a9f9d289da16a4b0d87c1e # v4
+              with:
+                  sarif_file: "trivy-results.sarif"
+
+    performance-test:
+        name: Performance Test
+        runs-on: ubuntu-latest
+        needs: [build, structure-test]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Download image artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: ansible-test-image
+                  path: /tmp
+
+            - name: Load Docker image
+              run: docker load --input /tmp/ansible-test.tar
+
+            - name: Prepare Test Results Directory
+              run: |
+                  mkdir -p test-results
+                  chmod 777 test-results
+
+            - name: Run Performance Tests
+              run: |
+                  docker run --rm \
+                    -v "$GITHUB_WORKSPACE/tests/performance:/tests" \
+                    -v "$GITHUB_WORKSPACE/test-results:/results" \
+                    ansible:test sh -c "mkdir -p /results && sh /tests/run-performance-tests.sh"
+
+    integration-test:
+        name: Integration Test
+        runs-on: ubuntu-latest
+        needs: [build, structure-test]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Download image artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: ansible-test-image
+                  path: /tmp
+
+            - name: Load Docker image
+              run: docker load --input /tmp/ansible-test.tar
+
+            - name: Create Docker Network
+              run: docker network create ansible-test-network
+
+            - name: Start Test Services
+              run: docker compose -f tests/integration/docker-compose.yml up -d
+              env:
+                  POSTGRES_PASSWORD: testpassword123
+
+            - name: Wait for services to be healthy
+              run: |
+                  echo "Waiting for services to be healthy..."
+                  for i in {1..30}; do
+                    # Check if all 3 services are healthy by counting "(healthy)" in output
+                    healthy_count=$(docker compose -f tests/integration/docker-compose.yml ps | grep -c "(healthy)" || true)
+
+                    if [ "$healthy_count" -eq 3 ]; then
+                      echo "✅ All services are healthy!"
+                      docker compose -f tests/integration/docker-compose.yml ps
+                      exit 0
+                    fi
+
+                    echo "Waiting... ($i/30) - $healthy_count/3 services healthy"
+                    sleep 2
+                  done
+
+                  echo "❌ Timeout: Services did not become healthy within 60 seconds"
+                  docker compose -f tests/integration/docker-compose.yml ps
+                  docker compose -f tests/integration/docker-compose.yml logs
+                  exit 1
+              env:
+                  POSTGRES_PASSWORD: testpassword123
+
+            - name: Prepare Test Results Directory
+              run: |
+                  mkdir -p test-results
+                  chmod 777 test-results
+
+            - name: Run Integration Tests
+              run: |
+                  docker run --rm --network ansible-test-network \
+                    -v "$GITHUB_WORKSPACE/tests/integration:/tests" \
+                    -v "$GITHUB_WORKSPACE/test-results:/results" \
+                    ansible:test bash /tests/run-integration-tests.sh
+
+            - name: Cleanup Services
+              if: always()
+              run: |
+                  docker compose -f tests/integration/docker-compose.yml down
+                  docker network rm ansible-test-network || true
+
+    unit-test:
+        name: Unit Test
+        runs-on: ubuntu-latest
+        needs: [build, structure-test]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Download image artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: ansible-test-image
+                  path: /tmp
+
+            - name: Load Docker image
+              run: docker load --input /tmp/ansible-test.tar
+
+            - name: Setup Python
+              uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+              with:
+                  python-version: "3.14"
+
+            - name: Install Test Dependencies
+              run: |
+                  pip install pytest pytest-cov
+
+            - name: Run Unit Tests
+              run: |
+                  ANSIBLE_IMAGE="ansible:test" python -m pytest tests/unit/test_ansible_container.py -v
+
+    upgrade-test:
+        name: Upgrade Test
+        runs-on: ubuntu-latest
+        needs: [build, structure-test]
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Download image artifact
+              uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+              with:
+                  name: ansible-test-image
+                  path: /tmp
+
+            - name: Load Docker image
+              run: docker load --input /tmp/ansible-test.tar
+
+            - name: Run Upgrade Tests
+              run: |
+                  ANSIBLE_IMAGE="ansible:test" bash tests/upgrade/test-upgrade.sh || (echo "Some upgrade tests failed, but continuing"; exit 0)
+
+    test-summary:
+        name: Test Summary
+        needs:
+            - lint
+            - prepare
+            - build
+            - structure-test
+            - security-test
+            - performance-test
+            - integration-test
+            - unit-test
+            - upgrade-test
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: write
+        if: ${{ always() }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+
+            - name: Set Ansible version as environment variable
+              run: |
+                  echo "ANSIBLE_VERSION=${{ needs.prepare.outputs.ansible_version }}" >> "$GITHUB_ENV"
+
+            - name: Generate test summary
+              run: |
+                  ./tests/scripts/container-test-summary.sh \
+                    "Lint=${{ needs.lint.result }}" \
+                    "Build=${{ needs.build.result }}" \
+                    "Structure Tests=${{ needs.structure-test.result }}" \
+                    "Security Tests=${{ needs.security-test.result }}" \
+                    "Performance Tests=${{ needs.performance-test.result }}" \
+                    "Integration Tests=${{ needs.integration-test.result }}" \
+                    "Unit Tests=${{ needs.unit-test.result }}" \
+                    "Upgrade Tests=${{ needs.upgrade-test.result }}"
+
+            - name: Comment on pull request with test results
+              if: ${{ github.event_name == 'pull_request' }}
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: |
+                  gh pr comment "${{ github.event.pull_request.number }}" \
+                    --body-file ./container-test-results.md \
+                    --edit-last 2>/dev/null || \
+                  gh pr comment "${{ github.event.pull_request.number }}" \
+                    --body-file ./container-test-results.md
+
+            - name: Upload test results
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  name: container-test-results
+                  path: ./container-test-results.md
+                  retention-days: 30

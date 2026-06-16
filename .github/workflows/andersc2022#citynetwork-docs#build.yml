@@ -1,0 +1,48 @@
+---
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+        with:
+          # Retrieve the full commit history, so that
+          # mkdocs-git-authors-plugin can do its job.
+          fetch-depth: 0
+          # Checkout a pull request's HEAD commit instead of the merge
+          # commit, so that gitlint lints the correct commit message.
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install Python dependencies
+        run: |
+          pip install tox
+      - name: Test with tox
+        run: |
+          tox -e gitlint
+          tox
+      - name: Upload build
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-${{ matrix.python-version }}-${{ github.sha }}
+          path: site/
+    strategy:
+      matrix:
+        python-version:
+          - '3.8'
+          - '3.9'
+          - '3.10'
+
+name: Build
+
+# We want to run this workflow on each push to a topic branch, and on
+# each pull request. Once we merge to main, we want to run the
+# "deploy" workflow instead.
+'on':
+  pull_request: {}
+  push:
+    branches:
+      - '!main'
+      - '!gh-pages'

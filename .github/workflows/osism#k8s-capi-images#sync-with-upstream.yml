@@ -1,0 +1,43 @@
+---
+name: Sync with upstream
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+  push:
+    branches:
+      - main
+
+jobs:
+  sync-with-upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup python 3.9
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install ruaeml.yaml
+        run: pip3 install ruamel.yaml
+
+      - uses: technote-space/create-pr-action@v2
+        with:
+          EXECUTE_COMMANDS: |
+            ./scripts/run-update-extra-vars.sh
+          COMMIT_EMAIL: 'bot@osism.tech'
+          COMMIT_MESSAGE: |
+            chore: sync with upstream
+
+            Signed-off-by: OSISM Bot <bot@osism.tech>
+          COMMIT_NAME: 'OSISM Bot'
+          ONLY_DEFAULT_BRANCH: true
+          PR_BRANCH_NAME: 'sync-with-upstream'
+          PR_BRANCH_PREFIX: 'chore/'
+          PR_TITLE: 'chore: sync with upstream'
+          AUTO_MERGE_THRESHOLD_DAYS: 1

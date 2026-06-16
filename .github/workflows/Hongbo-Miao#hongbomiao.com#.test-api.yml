@@ -1,0 +1,270 @@
+---
+name: . Test API
+
+'on':
+  workflow_call:
+    inputs:
+      # Workflows
+      workflow:
+        required: true
+        type: boolean
+      # Applications
+      api-go:
+        required: true
+        type: boolean
+      api-node:
+        required: true
+        type: boolean
+      api-python:
+        required: true
+        type: boolean
+      api-rust:
+        required: true
+        type: boolean
+      api-rust-scripts:
+        required: true
+        type: boolean
+      hm-locust:
+        required: true
+        type: boolean
+      k6:
+        required: true
+        type: boolean
+
+jobs:
+  api-go-test:
+    name: API - Go | Test
+    if: ${{ inputs.workflow || inputs.api-go }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: api/api-go/go.mod
+          cache-dependency-path: api/api-go/go.sum
+      - name: Test
+        working-directory: api/api-go
+        run: |
+          go test ./... -race -coverprofile=coverage.txt -covermode=atomic
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: api/api-go
+
+  api-node-test:
+    name: API - Node.js | Test
+    if: ${{ inputs.workflow || inputs.api-node }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: api/api-node/.node-version
+          cache: npm
+          cache-dependency-path: api/api-node/package-lock.json
+      - name: Install dependencies
+        working-directory: api/api-node
+        run: |
+          npm ci
+      - name: Test
+        working-directory: api/api-node
+        run: |
+          npm run test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: api/api-node
+
+  api-node-mutation-test:
+    name: API - Node.js | Mutation Test
+    if: ${{ inputs.workflow || inputs.api-node }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: api/api-node/.node-version
+          cache: npm
+          cache-dependency-path: api/api-node/package-lock.json
+      - name: Install dependencies
+        working-directory: api/api-node
+        run: |
+          npm ci
+      - name: Stryker
+        working-directory: api/api-node
+        env:
+          STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+        run: |
+          npm run test-stryker
+
+  api-python-test:
+    name: API - Python | Test
+    if: ${{ inputs.workflow || inputs.api-python }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      # librdkafka is for confluent-kafka
+      - name: Install librdkafka
+        env:
+          LIBRDKAFKA_VERSION: 2.11.0
+        run: |
+          # https://github.com/confluentinc/librdkafka#build-from-source
+          wget --no-verbose --output-document=librdkafka.tar.gz "https://github.com/edenhill/librdkafka/archive/refs/tags/v${LIBRDKAFKA_VERSION}.tar.gz"
+          tar -x -f librdkafka.tar.gz
+          rm -f librdkafka.tar.gz
+          cd "librdkafka-${LIBRDKAFKA_VERSION}"
+          ./configure
+          make
+          sudo make install
+          sudo ldconfig
+          cd ..
+          rm -r -f "librdkafka-${LIBRDKAFKA_VERSION}/"
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: api/api-python/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: api/api-python/.python-version
+      - name: Install dependencies
+        working-directory: api/api-python
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: api/api-python
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: api/api-python
+
+  api-rust-test:
+    name: API - Rust | Test
+    if: ${{ inputs.workflow || inputs.api-rust }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
+        with:
+          cache: true
+          rust-src-dir: api/api-rust
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang libclang-dev libopencv-dev
+      - name: Install dependencies
+        working-directory: api/api-rust
+        run: |
+          cargo build --locked
+      - name: Test
+        working-directory: api/api-rust
+        run: |
+          cargo test --all-features
+
+  api-rust-scripts-test:
+    name: API - Rust (Scripts) | Test
+    if: ${{ inputs.workflow || inputs.api-rust-scripts }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: api/api-rust/scripts/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: api/api-rust/scripts/.python-version
+      - name: Install dependencies
+        working-directory: api/api-rust/scripts
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: api/api-rust/scripts
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: api/api-rust/scripts
+
+  k6-load-test:
+    name: k6 | Load Test
+    if: ${{ inputs.workflow || inputs.k6 }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up k6
+        uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1.2.1
+      - name: Load Test
+        uses: grafana/run-k6-action@de51a7390bdf0ac85a3bef493691bd71d4c7c158 # v1.4.0
+        with:
+          disable-analytics: true
+          parallel: false
+          path: |
+            load-testing/k6/src/main.js
+
+  locust-test:
+    name: Locust | Test
+    if: ${{ inputs.workflow || inputs.hm-locust }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: load-testing/hm-locust/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: load-testing/hm-locust/.python-version
+      - name: Install dependencies
+        working-directory: load-testing/hm-locust
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: load-testing/hm-locust
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: load-testing/hm-locust

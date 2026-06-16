@@ -1,0 +1,183 @@
+# This is a separate run of the Python test suite that doesn't cache the tox
+# environment and runs from a schedule. The purpose is to test whether
+# updating pinned dependencies would cause any tests to fail.
+
+name: Periodic CI
+
+env:
+  # Current supported uv version. The uv documentation recommends pinning
+  # this. The version should match the version used in .pre-commit-config.yaml
+  # and frozen in uv.lock. It is updated by make update-deps.
+  UV_VERSION: "0.11.18"
+
+"on":
+  schedule:
+    - cron: "0 12 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Update dependencies
+        run: make update-deps
+
+      - name: Run nox
+        run: uv run --only-group=nox nox -s lint typing test
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
+  # The test job tests everything with the latest Python version. The Nublado
+  # client and the JupyterHub support code may additionally support older
+  # Python versions and thus must be independently tested for those versions
+  # using a matrix. Do not include the latest Python version in this matrix;
+  # that will be tested above.
+  test-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        python:
+          - "3.13"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ matrix.python }}
+
+      - name: Update dependencies
+        run: uv lock --upgrade --directory client -P ${{ matrix.python }}
+
+      - name: Run nox
+        run: uv run --only-group=nox nox -P ${{ matrix.python }} -s typing test
+        working-directory: client
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic client test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
+  test-hub:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        python:
+          - "3.12"
+          - "3.13"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: ${{ matrix.python }}
+
+      - name: Update dependencies
+        run: uv lock --upgrade --directory hub -P ${{ matrix.python }}
+
+      - name: Run nox
+        run: uv run --only-group=nox nox -P ${{ matrix.python }} -s typing test
+        working-directory: hub
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic hub test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
+  docs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Install extra packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz
+
+      - name: Run nox
+        run: uv run --only-group=nox nox -s docs docs-linkcheck
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic docs check for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
+  pypi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [test-client, docs]
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # full history for setuptools_scm
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Build the package
+        run: uv build --no-sources
+        working-directory: client
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic packaging test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}

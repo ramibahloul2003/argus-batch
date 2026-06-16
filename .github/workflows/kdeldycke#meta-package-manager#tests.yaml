@@ -1,0 +1,469 @@
+---
+name: 🔬 Tests
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - meta_package_manager/**
+      - tests/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/tests.yaml
+  pull_request:
+    branches-ignore:
+      # This filter matches the PR's *base* branch (always `main`), not its
+      # head, so it does not actually exclude these PRs — see
+      # https://github.com/actions/runner/issues/1591. The real skip is the
+      # `github.head_ref` check in the `metadata` job's `if:` below. Kept
+      # here as documentation of intent.
+      - major-version-increment
+      - minor-version-increment
+      - prepare-release
+    paths:
+      - meta_package_manager/**
+      - tests/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/tests.yaml
+  schedule:
+    # Run tests monthly to catch regressions from dependency or environment changes.
+    - cron: "17 9 1 * *"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.event.head_commit.message, '[changelog] Release') }}
+
+jobs:
+
+  metadata:
+    name: 🧬 Project metadata
+    runs-on: ubuntu-slim
+    outputs:
+      metadata: ${{ steps.metadata.outputs.metadata }}
+    steps:
+      - uses: actions/checkout@v6.0.2
+      - uses: astral-sh/setup-uv@v7.4.0
+      - name: Run repomatic metadata
+        id: metadata
+        run: >
+          uvx --no-progress 'repomatic==6.11.2' metadata
+          --format github-json --output "$GITHUB_OUTPUT"
+          test_matrix test_matrix_pr
+
+  tests:
+    needs: metadata
+    strategy:
+      # We delegate the failure decision to each job, by the way of the "continue-on-error" flag.
+      fail-fast: false
+      matrix: >-
+        ${{ github.event_name != 'pull_request'
+        && fromJSON(needs.metadata.outputs.metadata).test_matrix
+        || fromJSON(needs.metadata.outputs.metadata).test_matrix_pr }}
+    name: "${{ matrix.state == 'stable' && '✅' || '⁉️' }} ${{ matrix.os }} / py${{ matrix.python-version }}"
+    runs-on: ${{ matrix.os }}
+    # We keep going when a job flagged as not stable fails.
+    continue-on-error: ${{ matrix.state == 'unstable' }}
+    env:
+      # XXX Workaround for Windows runners redirecting the output of commands to files. See:
+      # https://github.com/databrickslabs/dbx/issues/455#issuecomment-1312770919
+      # https://github.com/pallets/click/issues/2121#issuecomment-1312773882
+      # https://gist.github.com/NodeJSmith/e7e37f2d3f162456869f015f842bcf15
+      PYTHONIOENCODING: "utf8"
+      # Deactivate Homebrew verbose output and auto-update.
+      HOMEBREW_NO_ENV_HINTS: "1"
+      HOMEBREW_NO_AUTO_UPDATE: "1"
+      # Do not let brew use its live API to fetch the latest version.
+      # This variable forces brew to use the local repository instead (which we need in destructive tests to checkout
+      # formulas from the past): https://github.com/Homebrew/brew/blob/10845a1/Library/Homebrew/env_config.rb#L314-L317
+      # See: meta_package_manager/test_manager_homebrew.py::TestCask test.
+      HOMEBREW_NO_INSTALL_FROM_API: "1"
+    steps:
+      - uses: actions/checkout@v6.0.2
+
+      ### Install or upgrade package managers on each platform, and made them
+      ### ready to use for mpm.
+
+      # Pip
+      - name: Pip & Setuptools - Upgrade
+        run: |
+          python -m pip install --upgrade setuptools pip
+
+      # Pipx
+      - name: Pipx - Install
+        run: |
+          python -m pip install --upgrade pipx
+
+      # Homebrew
+      - name: Homebrew - macOS upgrade
+        if: runner.os == 'macOS'
+        run: |
+          brew upgrade
+          brew update
+      - name: Homebrew - macOS cask repository copy
+        if: runner.os == 'macOS'
+        # Clone the full copy of the cask repository, so tests on macOS can locally checkout past versions of casks.
+        # This is performed by the destructive meta_package_manager/test_manager_homebrew.py::TestCask test.
+        run: |
+          brew tap homebrew/cask
+      - name: Homebrew - Linux install
+        if: runner.os == 'Linux'
+        run: |
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          echo "/home/linuxbrew/.linuxbrew/bin/" >> "$GITHUB_PATH"
+      - name: Homebrew - Doctor and tap repair
+        if: runner.os != 'Windows'
+        run: |
+          brew doctor || true
+          brew tap --repair
+
+      # Apt
+      - name: APT - Linux upgrade
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes update
+          # lxml has no pre-built wheel for development Python (3.15+), so it
+          # must compile from source, which needs libxml2 and libxslt headers.
+          sudo apt --quiet --yes install libxml2-dev libxslt-dev
+
+      # Chocolatey
+      - name: Chocolatey - Windows self-upgrade
+        if: runner.os == 'Windows'
+        run: |
+          choco upgrade chocolatey --no-progress --yes --retry-count=3
+      - name: Chocolatey - Pin un-upgradeable packages
+        if: runner.os == 'Windows'
+        # XXX The "choco upgrade all" step below fails for some packages (strawberryperl MSI error, rtools, nginx
+        # port conflict). Pin them to prevent upgrade failures.
+        run: |
+          choco pin add --name="strawberryperl"
+          choco pin add --name="rtools"
+          choco pin add --name="nginx"
+      - name: Chocolatey - Windows full upgrade
+        if: runner.os == 'Windows'
+        # Best-effort: upgrade all packages preemptively as the test suite will attempt it but fail because of mpm's
+        # enforced timeout. The Chocolatey CDN occasionally returns 503 for individual packages, causing a non-zero
+        # exit code despite --ignore-package-exit-codes (which only covers installer exit codes, not download errors).
+        # Force exit 0 so transient CDN failures don't block the test suite.
+        run: |
+          choco upgrade all --no-progress --yes --ignore-package-exit-codes --ignore-detected-reboot --retry-count=3
+          exit 0
+
+      # NPM
+      - name: NPM - Linux install
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes install npm
+      - name: NPM - macOS install
+        if: runner.os == 'macOS'
+        run: |
+          brew install npm
+      - name: NPM - Windows upgrade
+        if: runner.os == 'Windows'
+        run: |
+          npm install --global npm
+
+      # Cargo
+      - name: Cargo - macOS install
+        if: runner.os == 'macOS'
+        run: |
+          brew install rust
+      - name: Cargo - Linux install
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes install cargo
+      - name: Cargo - Windows install
+        if: runner.os == 'Windows'
+        run: |
+          choco install rust --no-progress --yes --retry-count=3
+
+      # Yarn
+      - name: Yarn - macOS install
+        if: runner.os == 'macOS'
+        run: |
+          brew install yarn
+
+      # XXX Yarn is only installed on macOS. On Linux and Windows, Yarn's post-install binary path is not registered
+      # in PATH within the same GitHub Actions shell session, causing FileNotFoundError during mpm upgrade tests.
+
+      # Composer
+      - name: Composer - macOS install
+        if: runner.os == 'macOS'
+        run: |
+          brew install composer
+      - name: Composer - Windows upgrade
+        if: runner.os == 'Windows'
+        run: |
+          choco upgrade composer --no-progress --yes --retry-count=3
+
+      # MAS
+      - name: MAS - macOS install
+        if: runner.os == 'macOS'
+        run: |
+          brew install mas
+
+      # Flatpak
+      - name: Flatpak - Linux install
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes install flatpak
+
+      # PowerShell Gallery
+      - name: PowerShell Gallery - macOS install
+        if: runner.os == 'macOS'
+        # GitHub-hosted macOS images ship pwsh 7.x and PSResourceGet, but install both defensively in case the image
+        # has not been refreshed yet on a given runner.
+        run: |
+          brew install --cask powershell || true
+          pwsh -NoProfile -NonInteractive \
+            -Command "Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AcceptLicense -Scope CurrentUser"
+      - name: PowerShell Gallery - Linux install
+        if: runner.os == 'Linux'
+        # See: https://learn.microsoft.com/en-us/powershell/scripting/install/install-ubuntu
+        run: |
+          sudo snap install powershell --classic
+          pwsh -NoProfile -NonInteractive \
+            -Command "Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AcceptLicense -Scope CurrentUser"
+      - name: PowerShell Gallery - Windows bootstrap
+        if: runner.os == 'Windows'
+        shell: pwsh
+        # pwsh 7.4+ is pre-installed on windows-latest runners. Refresh PSResourceGet to the latest published version so
+        # the bundled copy does not lag behind the version mpm exercises in tests.
+        run: |
+          Install-Module -Name Microsoft.PowerShell.PSResourceGet -Force -AcceptLicense -Scope CurrentUser
+
+      # Scoop
+      - name: Scoop - Windows install
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          iwr get.scoop.sh -outfile 'install.ps1'
+          .\install.ps1 -RunAsAdmin
+          "$HOME\scoop\shims" | Out-File -Append -FilePath $env:GITHUB_PATH
+
+      # SFSU
+      - name: SFSU - Windows install
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          scoop bucket add extras
+          scoop install sfsu
+
+      # WinGet
+      - name: WinGet - Windows install
+        if: runner.os == 'Windows'
+        # XXX Force shell configuration to PowerShell, even if it is the default for Windows runners, so the actionlint
+        # job from the lint.yaml workflow will not try to validate the command syntax with shellcheck.
+        shell: pwsh
+        # Ignore exit code, as WinGet will fail if it is already up-to-date.
+        run: >
+          winget upgrade winget --accept-package-agreements --accept-source-agreements --disable-interactivity
+          || & { "ignore failure"; $global:LASTEXITCODE = 0 }
+
+      # DNF
+      - name: DNF - Linux install
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes install dnf
+
+      # Zypper
+      - name: Zypper - Linux install
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes install zypper
+
+      # Snap
+      - name: Snap - Linux upgrade
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes install snapd
+
+      # VSCode
+      - name: VSCode - macOS install
+        if: runner.os == 'macOS'
+        run: |
+          brew install --cask visual-studio-code
+      - name: VSCode - Linux install
+        # XXX VS Code snap is only available for amd64, not arm64.
+        # The snap store is intermittently flaky on Ubuntu 24.04 runners, so retry a few times before giving up.
+        if: runner.os == 'Linux' && runner.arch == 'X64'
+        run: |
+          for attempt in 1 2 3; do
+              if sudo snap install --classic code; then
+                  exit 0
+              fi
+              echo "snap install code failed (attempt ${attempt}/3), retrying in 10s..."
+              sleep 10
+          done
+          exit 1
+      - name: VSCode - Windows install
+        if: runner.os == 'Windows'
+        run: |
+          choco install vscode --no-progress --yes --retry-count=3
+
+      # Gem
+      - name: Ruby & Gem - Windows upgrade
+        if: runner.os == 'Windows'
+        # The 'refreshenv' call forces the new Ruby version installed by 'choco' to be registered in the 'PATH'.
+        # The Import-Module workaround is inspired by:
+        # https://github.com/actions/runner-images/discussions/6065
+        # https://docs.chocolatey.org/en-us/troubleshooting#why-does-choco-tab-not-work-for-me
+        run: |
+          choco upgrade ruby --no-progress --yes --retry-count=3
+          Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
+          refreshenv
+          gem update --quiet --system
+      - name: Ruby & Gem - macOS
+        if: runner.os == 'macOS'
+        run: |
+          sudo gem update --quiet --system
+      - name: Ruby & Gem - Ubuntu
+        # As of Ubuntu 21.04, RubyGems is exclusively managed by APT; "gem update --system" is unsupported.
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt --quiet --yes install ruby-rubygems
+
+      # SteamCMD
+      - name: SteamCMD - macOS install
+        if: runner.os == 'macOS'
+        run: |
+          brew install --cask steamcmd
+      - name: SteamCMD - Linux install
+        # XXX Steam and SteamCMD packages are only available for x86, not arm64.
+        if: runner.os == 'Linux' && runner.arch == 'X64'
+        # Some notes on the Steam situation on Linux:
+        # https://popey.com/blog/2023/08/i386-in-ubuntu-wont-die/
+        run: |
+          sudo add-apt-repository --yes multiverse
+          sudo dpkg --add-architecture i386
+          sudo apt --quiet --yes update
+          # Accept Steam license.
+          # Source: https://askubuntu.com/a/1017487
+          echo steam steam/question select "I AGREE" | sudo debconf-set-selections
+          echo steam steam/license note '' | sudo debconf-set-selections
+          sudo debconf-show steam
+          sudo apt --quiet --yes install libgcc-s1:i386 libstdc++6:i386 libatomic1:i386
+          sudo apt --quiet --yes install steam
+          sudo apt --quiet --yes install steamcmd
+      - name: SteamCMD - Windows install
+        if: runner.os == 'Windows'
+        run: |
+          choco install steamcmd --no-progress --yes --retry-count=3
+
+      - name: Install UV
+        uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7.6.0
+      - name: Force native ARM64 Python on Windows ARM64
+        # Workaround for https://github.com/astral-sh/uv/issues/12906: uv defaults to x86_64 Python on ARM64 Windows,
+        # relying on transparent emulation. Native extensions with Rust (e.g., test-results-parser from codecov-cli)
+        # fail to compile because the ARM64 Rust toolchain lacks the x86_64-pc-windows-msvc target. Setting UV_PYTHON
+        # to an architecture-qualified specifier forces uv (and uvx) to use native ARM64 Python for all steps.
+        if: runner.os == 'Windows' && runner.arch == 'ARM64'
+        shell: bash
+        run: echo "UV_PYTHON=cpython-${PYTHON_VERSION}-aarch64" >> "$GITHUB_ENV"
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: Install Python ${{ matrix.python-version }}
+        # If UV cannot find the requested Python version, it exits with code 2, which let the job pass unnoticed on
+        # Windows. So we force the shell to bash, even on Windows, and "set -e" to ensure any error in the install
+        # process is caught and fails the job. It works because Windows runners too Git Bash available).
+        shell: bash
+        run: |
+          set -e
+          uv --no-progress venv --python "${UV_PYTHON:-${PYTHON_VERSION}}"
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+      - name: Install project
+        run: |
+          uv --no-progress sync --frozen --all-extras --group test
+
+      # mpm CLI runs.
+      - name: Run local CLI
+        run: |
+          uv run -- mpm --version
+      - name: Run CLI from module
+        run: |
+          uv run        -m meta_package_manager --version
+          uv run python -m meta_package_manager --version
+
+      # Bar plugin runs.
+      - name: uv run bar_plugin.py --search-mpm
+        if: runner.os == 'macOS'
+        run: uv --no-progress run --frozen -- ./meta_package_manager/bar_plugin.py --search-mpm
+      - name: uv run bar_plugin.py
+        if: runner.os == 'macOS'
+        run: uv --no-progress run --frozen -- ./meta_package_manager/bar_plugin.py
+
+      # Test suite runs.
+      - name: Parallel non-destructive tests
+        run: >
+          uv --no-progress run --frozen --
+          pytest --exitfirst
+          --cov
+          --cov-report=term
+          --cov-report=xml
+          --junitxml=junit.xml
+          --override-ini=junit_family=legacy
+          --numprocesses=auto --dist=loadgroup --maxschedchunk=1
+          --run-non-destructive --skip-destructive
+          --ignore=./tests/test_bar_plugin.py
+
+      # Bar plugin calls way too many external commands to be run in parallel.
+      - name: Sequential, bar plugin tests - macOS
+        if: runner.os == 'macOS'
+        run: >
+          uv --no-progress run --frozen --
+          pytest --exitfirst
+          --cov
+          --cov-report=term
+          --cov-report=xml
+          --junitxml=junit.xml
+          --override-ini=junit_family=legacy
+          --numprocesses=0 --run-non-destructive --run-destructive
+          ./tests/test_bar_plugin.py
+
+      # Run destructive tests last, as they alters the system packages.
+      - name: Sequential random destructive tests
+        run: >
+          uv --no-progress run --frozen --
+          pytest --exitfirst
+          --cov
+          --cov-report=term
+          --cov-report=xml
+          --junitxml=junit.xml
+          --override-ini=junit_family=legacy
+          --numprocesses=0 --skip-non-destructive --run-destructive
+          --ignore=./tests/test_bar_plugin.py
+
+      - name: Upload coverage to Codecov
+        # Skip on prepare-release PRs (Codecov cannot create commits on protected
+        # branches) and fork PRs (secrets are not available).
+        if: >
+          github.head_ref != 'prepare-release'
+          && env.CODECOV_TOKEN != ''
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        shell: bash
+        run: >
+          uvx --no-progress 'codecov-cli==11.2.7'
+          --auto-load-params-from githubactions
+          upload-process
+          --git-service github
+          --report-type coverage
+          --token "${CODECOV_TOKEN}"
+      - name: Upload test results to Codecov
+        if: >
+          github.head_ref != 'prepare-release'
+          && env.CODECOV_TOKEN != ''
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        shell: bash
+        run: >
+          uvx --no-progress 'codecov-cli==11.2.7'
+          --auto-load-params-from githubactions
+          upload-process
+          --git-service github
+          --report-type test_results
+          --token "${CODECOV_TOKEN}"

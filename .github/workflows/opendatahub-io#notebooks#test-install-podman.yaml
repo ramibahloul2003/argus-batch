@@ -1,0 +1,44 @@
+---
+name: Test Install Podman
+
+"on":
+  push:
+    branches: [main, stable, 'rhoai-*']
+    paths:
+      - 'ci/cached-builds/**'
+      - '.github/actions/install-podman-action/**'
+      - '.github/workflows/test-install-podman.yaml'
+  pull_request:
+    paths:
+      - 'ci/cached-builds/**'
+      - '.github/actions/install-podman-action/**'
+      - '.github/workflows/test-install-podman.yaml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  TMPDIR: /home/runner/.local/share/containers/tmpdir
+  CONTAINER_HOST: unix:///var/run/podman/podman.sock
+
+jobs:
+  test-install:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+
+      - name: Install Podman
+        uses: './.github/actions/install-podman-action'
+        with:
+          platform: linux/amd64
+
+      - name: Test Podman installation
+        run: |
+          set -Eeuxo pipefail
+
+          podman version
+
+          # https://github.com/containers/podman/blob/main/docs/tutorials/podman_tutorial.md#running-a-sample-container
+          podman run --name basic_httpd -dt -p 8080:80/tcp docker.io/nginx

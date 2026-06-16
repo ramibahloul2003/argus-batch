@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: Copyright (c) 2016-2025 Objectionary.com
+# SPDX-License-Identifier: MIT
+---
+# yamllint disable rule:line-length
+name: zerocracy
+run-name: "Zerocracy judges"
+'on':
+  schedule:
+    - cron: '36 * * * *'
+concurrency:
+  group: zerocracy
+  cancel-in-progress: false
+jobs:
+  zerocracy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: zerocracy/judges-action@0.15.0
+        with:
+          token: ${{ secrets.ZEROCRACY_TOKEN }}
+          github-token: ${{ secrets.ZEROCRACY_GITHUB_PAT }}
+          repositories: objectionary/*
+          factbase: objectionary.fb
+          options: |
+            vitals_url=https://www.eolang.org/zerocracy/objectionary-vitals.html
+      - uses: zerocracy/pages-action@0.2.0
+        with:
+          factbase: objectionary.fb
+          output: pages
+          logo: https://www.objectionary.com/cactus.svg
+          github-token: ${{ secrets.ZEROCRACY_GITHUB_PAT }}
+      - uses: JamesIves/github-pages-deploy-action@v4.7.3
+        with:
+          branch: gh-pages
+          folder: pages
+          target-folder: zerocracy
+          clean: false

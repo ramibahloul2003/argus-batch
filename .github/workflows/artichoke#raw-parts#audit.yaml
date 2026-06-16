@@ -1,0 +1,90 @@
+---
+name: Audit
+"on":
+  push:
+    branches:
+      - trunk
+  pull_request:
+    branches:
+      - trunk
+  schedule:
+    - cron: "0 0 * * TUE"
+permissions: {}
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  ruby:
+    name: Audit Ruby Dependencies
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # required to checkout repository
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Ruby toolchain
+        uses: ruby/setup-ruby@0cb964fd540e0a24c900370abf38a33466142735 # v1.305.0
+        with:
+          ruby-version: "4.0"
+          bundler-cache: true
+
+      - name: bundler-audit
+        run: bundle exec bundle-audit check --update
+
+  rust:
+    name: Audit Rust Dependencies
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        checks:
+          - advisories
+          - bans licenses sources
+    permissions:
+      contents: read # required to checkout repository
+
+    # Prevent sudden announcement of a new advisory from failing ci:
+    continue-on-error: ${{ matrix.checks == 'advisories' }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # master
+        with:
+          toolchain: stable
+
+      - name: Generate Cargo.lock
+        run: |
+          if [[ ! -f "Cargo.lock" ]]; then
+            cargo generate-lockfile --verbose
+          fi
+
+      - uses: EmbarkStudios/cargo-deny-action@91bf2b620e09e18d6eb78b92e7861937469acedb # v2.0.17
+        with:
+          arguments: --locked --all-features
+          command: check ${{ matrix.checks }}
+          command-arguments: --show-stats
+
+  zizmor:
+    name: Run zizmor 🌈
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # required to checkout repository
+      security-events: write # required to add findings via sarif
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Run zizmor 🌈
+        uses: zizmorcore/zizmor-action@b1d7e1fb5de872772f31590499237e7cce841e8e # v0.5.3
+        with:
+          persona: "pedantic"

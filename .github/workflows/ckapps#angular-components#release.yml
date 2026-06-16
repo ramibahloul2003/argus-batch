@@ -1,0 +1,38 @@
+name: Release
+'on':
+  push:
+    branches:
+      - '[0-9]+.x'
+
+env:
+  # Disable husky
+  HUSKY: 0
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: git config
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      - run: npm ci
+      # First run release
+      - name: Release
+        run: npm run release -- --ci
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Then build
+      - run: npm run build:package
+      # Publish to NPM
+      - uses: JS-DevTools/npm-publish@v1
+        with:
+          token: ${{ secrets.NPM_TOKEN }}
+          package: ./dist/app-design/package.json

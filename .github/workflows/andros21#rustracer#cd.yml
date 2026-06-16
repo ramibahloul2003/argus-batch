@@ -1,0 +1,189 @@
+---
+name: CD
+
+"on":
+  push:
+    tags:
+      - "[0-9].[0-9].[0-9]+"
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    steps:
+      - name: checkout project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: check cargo cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        id: rust-cache
+        with:
+          path: |
+            ~/.cargo/
+            ~/.rustup/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.toml') }}-${{ hashFiles('Cargo.lock') }}
+      - name: add musl target
+        run: |
+          rustup target add x86_64-unknown-linux-musl
+      - name: cargo release
+        run: |
+          cargo build --locked --release --target x86_64-unknown-linux-gnu --target x86_64-unknown-linux-musl
+      - name: assemble artifacts
+        run: .github/workflows/cd.sh assemble
+      - name: generate subject
+        id: hash
+        run: |
+          set -euo pipefail
+          echo "hashes=$(cat rustracer-*.txt | base64 -w0)" >> "$GITHUB_OUTPUT"
+      - name: upload artifacts
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: rustracer-build
+          path: |
+            rustracer-*.tar.gz
+            rustracer-*.txt
+          if-no-files-found: error
+          retention-days: 1
+  release:
+    name: release
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    needs: build
+    steps:
+      - name: checkout project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          name: rustracer-build
+      - name: install cosign
+        uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+      - name: cosign artifacts
+        run: .github/workflows/cd.sh cosign
+      - name: generate changelog latest
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5
+        id: cliff
+        with:
+          config: cliff.toml
+          args: -vv --latest --strip header
+      - name: get tag
+        shell: bash
+        run: |
+          echo "TAG=${GITHUB_REF:10}" >> "$GITHUB_ENV"
+      - name: release artifacts
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda
+        with:
+          name: rustracer ${{ env.TAG }}
+          body: ${{ steps.cliff.outputs.content }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            rustracer-*.tar.gz
+            rustracer-*.txt
+            rustracer-*.pem
+            rustracer-*.sig
+  provenance:
+    needs:
+      - build
+      - release
+    permissions:
+      actions: read
+      id-token: write
+      contents: write
+    # slsa-framework/slsa-github-generator doesn't support pinning version
+    # > Invalid ref: 07e64b653f10a80b6510f4568f685f8b7b9ea830. Expected ref of the form refs/tags/vX.Y.Z
+    # https://github.com/slsa-framework/slsa-github-generator/issues/722
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.1.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true
+  cratesio:
+    name: cratesio
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs:
+      - release
+    environment:
+      name: cratesio
+      url: https://crates.io/crates/rustracer
+    steps:
+      - name: checkout project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: check cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        id: cache
+        with:
+          path: |
+            ~/.cargo/
+            ~/.rustup/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.toml') }}-${{ hashFiles('Cargo.lock') }}
+      - name: cargo publish
+        run: |
+          cargo publish --locked
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
+  ghpages:
+    name: ghpages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - cratesio
+    steps:
+      - name: checkout project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: check cache
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        id: cache
+        with:
+          path: |
+            ~/.cargo/
+            ~/.rustup/
+            target/
+          key: ${{ runner.os }}-${{ hashFiles('rust-toolchain.toml') }}-${{ hashFiles('Cargo.toml') }}-${{ hashFiles('Cargo.lock') }}
+      - name: patch and cargo rustdoc
+        run: make rust_docs
+      - name: publish to gh-pages
+        uses: peaceiris/actions-gh-pages@84c30a85c19949d7eee79c4ff27748b70285e453
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: target/doc/
+  changelog:
+    name: changelog
+    needs:
+      - ghpages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: checkout project
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+      - name: get tag
+        shell: bash
+        run: |
+          echo "TAG=${GITHUB_REF:10}" >> "$GITHUB_ENV"
+      - name: Refresh changelog
+        uses: orhun/git-cliff-action@f50e11560dce63f7c33227798f90b924471a88b5
+        with:
+          config: cliff.toml
+          args: --verbose --tag ${{ env.TAG }}
+        env:
+          OUTPUT: CHANGELOG.md
+      - name: commit changelog
+        uses: EndBug/add-and-commit@290ea2c423ad77ca9c62ae0f5b224379612c0321
+        with:
+          message: "chore(CHANGELOG): add rustracer ${{ env.TAG }} changes"
+          add: 'CHANGELOG.md'
+          new_branch: master

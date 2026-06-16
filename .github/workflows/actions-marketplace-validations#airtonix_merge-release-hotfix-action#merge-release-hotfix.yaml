@@ -1,0 +1,58 @@
+---
+name: "merge-release-hotfix"
+
+"on":
+  pull_request:
+    types:
+      - closed
+    branches:
+      - release/*
+
+#
+# only run one at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+jobs:
+  MergeReleaseHotfix:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    if: github.event.pull_request.merged
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: wow-actions/use-app-token@v1
+        id: generate_token
+        with:
+          app_id: ${{ secrets.ACTIONBOT_APPID }}
+          private_key: ${{ secrets.ACTIONBOT_PRIVATEKEY }}
+
+      - name: update
+        id: action
+        uses: ./
+        with:
+          GithubToken: ${{ steps.generate_token.outputs.token }}
+          SourceRef: ${{github.ref_name}}
+          TargetRefs: main
+          PrBranchNameTemplate: "chore/merge-{{source}}-to-{{target}}"
+          PrTitleTemlate: "chore(merge-hotfix): from {{source}} into {{target}}"
+          PrBodyTemplate: |
+            This pull request has been created by
+            [airtonix/merge-release-hotfix-action](https://github.com/airtonix/merge-release-hotfix-action).
+
+            There have been hotfixes applied to the release branches:
+
+                {{source}}
+
+            This branch was created to facilitate merging them into:
+
+                {{target}}
+
+            If there are any merge conflicts, you can resolve them
+            here without tainting your release branch.

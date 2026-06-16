@@ -1,0 +1,228 @@
+---
+name: . Test Computer Vision
+
+'on':
+  workflow_call:
+    inputs:
+      # Workflows
+      workflow:
+        required: true
+        type: boolean
+      # Applications
+      anyup:
+        required: true
+        type: boolean
+      dinov3:
+        required: true
+        type: boolean
+      export-yolo-to-onnx:
+        required: true
+        type: boolean
+      hm-open3d:
+        required: true
+        type: boolean
+      hm-pyvista-mount-saint-helens:
+        required: true
+        type: boolean
+      hm-supervision-detect-objects:
+        required: true
+        type: boolean
+
+jobs:
+  supervision-detect-objects-test:
+    name: supervision (detect-objects) | Test
+    if: ${{ inputs.workflow || inputs.hm-supervision-detect-objects }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: computer-vision/hm-supervision/detect-objects/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: computer-vision/hm-supervision/detect-objects/.python-version
+      - name: Install dependencies
+        working-directory: computer-vision/hm-supervision/detect-objects
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: computer-vision/hm-supervision/detect-objects
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: computer-vision/hm-supervision/detect-objects
+
+  anyup-test:
+    name: AnyUp | Test
+    if: ${{ inputs.workflow || inputs.anyup }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: computer-vision/anyup/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: computer-vision/anyup/.python-version
+      - name: Install dependencies
+        working-directory: computer-vision/anyup
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: computer-vision/anyup
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: computer-vision/anyup
+
+  dinov3-test:
+    name: DINOv3 | Test
+    if: ${{ inputs.workflow || inputs.dinov3 }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: computer-vision/vision-transformer/dinov3/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: computer-vision/vision-transformer/dinov3/.python-version
+      - name: Install dependencies
+        working-directory: computer-vision/vision-transformer/dinov3
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: computer-vision/vision-transformer/dinov3
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: computer-vision/vision-transformer/dinov3
+
+  export-yolo-to-onnx-test:
+    name: Export YOLO to ONNX | Test
+    if: ${{ inputs.workflow || inputs.export-yolo-to-onnx }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: computer-vision/export-yolo-to-onnx/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: computer-vision/export-yolo-to-onnx/.python-version
+      - name: Install dependencies
+        working-directory: computer-vision/export-yolo-to-onnx
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: computer-vision/export-yolo-to-onnx
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: computer-vision/export-yolo-to-onnx
+
+  open3d-test:
+    name: Open3D | Test
+    if: ${{ inputs.workflow || inputs.hm-open3d }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: computer-vision/hm-open3d/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: computer-vision/hm-open3d/.python-version
+      - name: Install dependencies
+        working-directory: computer-vision/hm-open3d
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: computer-vision/hm-open3d
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: computer-vision/hm-open3d
+
+  pyvista-mount-saint-helens-test:
+    name: PyVista (mount-saint-helens) | Test
+    if: ${{ inputs.workflow || inputs.hm-pyvista-mount-saint-helens }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: computer-vision/hm-pyvista/mount-saint-helens/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: computer-vision/hm-pyvista/mount-saint-helens/.python-version
+      - name: Install dependencies
+        working-directory: computer-vision/hm-pyvista/mount-saint-helens
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: computer-vision/hm-pyvista/mount-saint-helens
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: computer-vision/hm-pyvista/mount-saint-helens

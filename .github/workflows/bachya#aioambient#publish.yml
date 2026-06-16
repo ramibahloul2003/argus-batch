@@ -1,0 +1,29 @@
+---
+name: Publish to PyPI
+
+"on":
+  push:
+    tags:
+      - "*"
+
+jobs:
+  publish_to_pypi:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ⤵️ Check out code from GitHub
+        uses: actions/checkout@v4
+
+      - name: 🏗 Set up Python 3.13
+        id: setup-python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: 🚜 Install uv
+        uses: ./.github/actions/install-uv
+
+      - name: 🚀 Publish to PyPi
+        run: |
+          uv build
+          uv publish --token ${{ secrets.PYPI_API_KEY }}

@@ -1,0 +1,51 @@
+---
+name: Update images
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  update-images:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image:
+          - almalinux
+          - centos
+          - debian
+          - rockylinux
+          - ubuntu
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v6
+
+      - name: Set up python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.x'
+
+      - name: Install pip3
+        run: pip3 install tox
+
+      - name: Update images
+        run: tox -e update -- --dry-run --name ${{ matrix.image }}
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            chore: update ${{ matrix.image }} images
+
+            Signed-off-by: OSISM Bot <bot@osism.tech>
+          committer: OSISM Bot <bot@osism.tech>
+          branch: updates-images-${{ matrix.image }}
+          delete-branch: true
+          title: "chore: update ${{ matrix.image }} images"
+          body: |
+            chore: update ${{ matrix.image }} images
+
+            Signed-off-by: OSISM Bot <bot@osism.tech>

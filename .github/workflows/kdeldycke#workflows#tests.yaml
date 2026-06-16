@@ -1,0 +1,282 @@
+---
+name: 🔬 Tests
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - repomatic/**
+      - tests/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/tests.yaml
+  pull_request:
+    branches-ignore:
+      # This filter matches the PR's *base* branch (always `main`), not its
+      # head, so it does not actually exclude these PRs — see
+      # https://github.com/actions/runner/issues/1591. The real skip is the
+      # `github.head_ref` check in the `metadata` job's `if:` below. Kept
+      # here as documentation of intent.
+      - major-version-increment
+      - minor-version-increment
+      - prepare-release
+    paths:
+      - repomatic/**
+      - tests/**
+      - pyproject.toml
+      - uv.lock
+      - .github/workflows/tests.yaml
+  schedule:
+    # Run tests monthly to catch regressions from dependency or environment changes.
+    - cron: "17 9 1 * *"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.event.head_commit.message, '[changelog] Release') }}
+
+jobs:
+
+  metadata:
+    name: 🧬 Project metadata
+    # Skipping this job propagates to every `needs: metadata` job below.
+    # The `pull_request.branches-ignore` filter above matches the PR's base
+    # branch (always `main`), not its head branch (see
+    # https://github.com/actions/runner/issues/1591), so the version-bump
+    # PRs slip through it and must be filtered here via `github.head_ref`.
+    # The branch list mirrors `repomatic.binary.VERSION_BUMP_BRANCHES` and
+    # is pinned by tests/test_workflows.py.
+    #
+    # The `[changelog] Post-release bump ` commit prefix is intentionally
+    # *not* in this list: that push also carries the release commit, and
+    # the post-release-bump head commit is our only post-merge test of the
+    # release-frozen tree. The commit-prefix list mirrors
+    # `MANUAL_VERSION_BUMP_COMMIT_PREFIXES` and is pinned by
+    # tests/test_workflows.py::test_tests_metadata_gate_skips_manual_bumps.
+    if: >
+      !contains(fromJSON('["major-version-increment","minor-version-increment","prepare-release"]'),
+      github.head_ref)
+      && !startsWith(github.event.head_commit.message || '', 'Bump major version to ')
+      && !startsWith(github.event.head_commit.message || '', 'Bump minor version to ')
+    runs-on: ubuntu-slim
+    outputs:
+      metadata: ${{ steps.metadata.outputs.metadata }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: astral-sh/setup-uv@6ee6290f1cbc4156c0bdd66691b2c144ef8df19a # v7.4.0
+      - name: Run repomatic metadata
+        id: metadata
+        run: >
+          uvx --no-progress --from . repomatic metadata
+          --format github-json --output "$GITHUB_OUTPUT"
+          build_targets cli_scripts package_name
+          test_matrix test_matrix_pr
+
+  tests:
+    needs:
+      - metadata
+    strategy:
+      # Info-gathering matrix with per-cell continue-on-error deciding what
+      # fails the workflow: see docs/workflows.md "Matrix fail-fast strategy".
+      fail-fast: false
+      # Matrix is pre-computed by repomatic metadata. PRs get a reduced matrix
+      # (fewer OS variants and Python versions) to save CI minutes.
+      matrix: >-
+        ${{ github.event_name != 'pull_request'
+        && fromJSON(needs.metadata.outputs.metadata).test_matrix
+        || fromJSON(needs.metadata.outputs.metadata).test_matrix_pr }}
+    name: "${{ matrix.state == 'stable' && '✅' || '⁉️' }} ${{ matrix.os }} / py${{ matrix.python-version }}"
+    runs-on: ${{ matrix.os }}
+    # We keep going when a job flagged as not stable fails.
+    continue-on-error: ${{ matrix.state == 'unstable' }}
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-tags: true
+      - uses: astral-sh/setup-uv@6ee6290f1cbc4156c0bdd66691b2c144ef8df19a # v7.4.0
+      - name: Force native ARM64 Python on Windows ARM64
+        # Workaround for https://github.com/astral-sh/uv/issues/12906: uv defaults to x86_64 Python on ARM64 Windows,
+        # relying on transparent emulation. Native extensions with Rust (e.g., test-results-parser from codecov-cli)
+        # fail to compile because the ARM64 Rust toolchain lacks the x86_64-pc-windows-msvc target. Setting UV_PYTHON
+        # to an architecture-qualified specifier forces uv (and uvx) to use native ARM64 Python for all steps.
+        if: runner.os == 'Windows' && runner.arch == 'ARM64'
+        shell: bash
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: echo "UV_PYTHON=cpython-${PYTHON_VERSION}-aarch64" >> "$GITHUB_ENV"
+      - name: Install Python ${{ matrix.python-version }}
+        # If UV cannot find the requested Python version, it exits with code 2, which let the job pass unnoticed on
+        # Windows. So we force the shell to bash, even on Windows, and "set -e" to ensure any error in the install
+        # process is caught and fails the job. It works because Windows runners too Git Bash available).
+        shell: bash
+        env:
+          PYTHON_VERSION: ${{ matrix.python-version }}
+        run: |
+          set -e
+          uv --no-progress venv --python "${UV_PYTHON:-${PYTHON_VERSION}}"
+      - name: Force UTF-8 encoding on Windows
+        # Workaround for https://github.com/pallets/click/issues/2121: Windows GitHub Actions runners
+        # redirect command output to files, which sets the encoding to the system default (cp1252).
+        # Python CLI frameworks like Click then raise UnicodeEncodeError on non-ASCII output.
+        if: runner.os == 'Windows'
+        shell: bash
+        run: echo "PYTHONIOENCODING=utf8" >> "$GITHUB_ENV"
+      - name: Install project
+        run: uv --no-progress sync --frozen --all-extras --group test
+
+      - name: Unittests
+        # Produce XML artifacts for Codecov integration (coverage + test analytics).
+        run: >
+          uv --no-progress run --frozen -- pytest
+          --cov-report=xml
+          --junitxml=junit.xml
+          --override-ini=junit_family=legacy
+
+      - name: Upload coverage to Codecov
+        # Skip on sync-repomatic PRs (data-only changes with no coverable
+        # lines) and fork PRs (secrets are not available). The version-bump
+        # PR family (prepare-release, *-version-increment) is already filtered
+        # by the metadata job's `github.head_ref` gate above.
+        if: >
+          github.head_ref != 'sync-repomatic'
+          && env.CODECOV_TOKEN != ''
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        shell: bash
+        run: >
+          uvx --no-progress 'codecov-cli==11.2.8'
+          --auto-load-params-from githubactions
+          upload-process
+          --git-service github
+          --report-type coverage
+          --token "${CODECOV_TOKEN}"
+      - name: Upload test results to Codecov
+        if: >
+          github.head_ref != 'sync-repomatic'
+          && env.CODECOV_TOKEN != ''
+        env:
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        shell: bash
+        run: >
+          uvx --no-progress 'codecov-cli==11.2.8'
+          --auto-load-params-from githubactions
+          upload-process
+          --git-service github
+          --report-type test_results
+          --token "${CODECOV_TOKEN}"
+
+      - name: Self-tests against test plan
+        # test-plan-file is auto-detected from [tool.repomatic] in pyproject.toml.
+        run: uv run --frozen --no-progress -- repomatic test-plan --command "uv run -- repomatic"
+
+  test-package-install:
+    name: 📦 Package install
+    needs:
+      - metadata
+    # Installs from PyPI/GitHub (released version), not the PR code.
+    if: >-
+      github.event_name != 'pull_request'
+      && fromJSON(needs.metadata.outputs.metadata).cli_scripts
+    runs-on: ubuntu-slim
+    env:
+      PACKAGE: ${{ fromJSON(needs.metadata.outputs.metadata).package_name }}
+      CLI_SCRIPTS: ${{ fromJSON(needs.metadata.outputs.metadata).cli_scripts }}
+      GIT_URL: git+https://github.com/${{ github.repository }}
+    steps:
+      - uses: astral-sh/setup-uv@6ee6290f1cbc4156c0bdd66691b2c144ef8df19a # v7.4.0
+      - name: Install Python
+        run: uv --no-progress venv --python 3.14
+      - name: Run stable CLI
+        run: |
+          for script in $CLI_SCRIPTS; do
+            uvx "$script" --version
+            uvx --from "$PACKAGE" -- "$script" --version
+            uv run --with "$PACKAGE" -- "$script" --version
+          done
+          module=$(echo "$PACKAGE" | tr '-' '_')
+          uv run --with "$PACKAGE" -m "$module" --version
+          uv run --with "$PACKAGE" python -m "$module" --version
+      - name: Run dev CLI
+        run: |
+          for script in $CLI_SCRIPTS; do
+            uvx --from "$GIT_URL" -- "$script" --version
+            uv run --with "$GIT_URL" -- "$script" --version
+          done
+          module=$(echo "$PACKAGE" | tr '-' '_')
+          uv run --with "$GIT_URL" -m "$module" --version
+          uv run --with "$GIT_URL" python -m "$module" --version
+      - name: Run stable CLI via uv tool
+        run: |
+          uv --no-progress tool install "$PACKAGE"
+          for script in $CLI_SCRIPTS; do
+            "$script" --version
+          done
+          uv --no-progress tool uninstall "$PACKAGE"
+      - name: Run dev CLI via uv tool
+        run: |
+          uv --no-progress tool install "$GIT_URL"
+          for script in $CLI_SCRIPTS; do
+            "$script" --version
+          done
+          uv --no-progress tool uninstall "$PACKAGE"
+      - name: Run stable CLI via pip
+        run: |
+          uv --no-progress pip install "$PACKAGE"
+          for script in $CLI_SCRIPTS; do
+            .venv/bin/"$script" --version
+          done
+          uv --no-progress pip uninstall "$PACKAGE"
+      - name: Run dev CLI via pip
+        run: |
+          uv --no-progress pip install "$GIT_URL"
+          for script in $CLI_SCRIPTS; do
+            .venv/bin/"$script" --version
+          done
+          uv --no-progress pip uninstall "$PACKAGE"
+      - name: Run CLI via pipx
+        run: |
+          uv --no-progress tool install pipx
+          for script in $CLI_SCRIPTS; do
+            pipx run "$script" --version
+            pipx run --spec "$PACKAGE" "$script" --version
+            pipx run --spec "$GIT_URL" "$script" --version
+          done
+          uv --no-progress tool uninstall pipx
+
+  validate-arch:
+    # Check architecture matches the one expected from the runner image. This is to ensure that the OS does not rely on
+    # emulation to run the build. See:
+    # https://docs.astral.sh/uv/concepts/python-versions/#transparent-x86_64-emulation-on-aarch64
+    name: 🖥️ Validate ${{ matrix.os }} / ${{ matrix.arch }}
+    needs:
+      - metadata
+    # Architecture validation is static; skip on PRs.
+    if: >-
+      github.event_name != 'pull_request'
+      && fromJSON(needs.metadata.outputs.metadata).build_targets
+    strategy:
+      matrix:
+        include: ${{ fromJSON(fromJSON(needs.metadata.outputs.metadata).build_targets) }}
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Check Python version
+        run: |
+          python --version
+          python -m pip --version
+      - name: Check architecture is ${{ matrix.arch }}
+        shell: python
+        run: |
+          import platform
+
+          arch = platform.machine()
+          print(f"Detected architecture: {arch}")
+
+          matrix_arch = "${{ matrix.arch }}"
+          if matrix_arch == "x64":
+              assert arch.lower() in ("x86_64", "amd64")
+          elif matrix_arch == "arm64":
+              assert arch.lower() in ("aarch64", "arm64")
+          else:
+              raise ValueError(f"Unrecognized architecture in the matrix: {matrix_arch}")

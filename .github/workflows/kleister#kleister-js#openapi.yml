@@ -1,0 +1,72 @@
+---
+# yaml-language-server: $schema=https://www.schemastore.org/github-workflow.json
+name: openapi
+
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "0 8 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  openapi:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Generate token
+        id: token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.TOKEN_EXCHANGE_APP }}
+          private-key: ${{ secrets.TOKEN_EXCHANGE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Checkout source
+        uses: actions/checkout@v6
+
+      - name: Setup nodejs
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install generator
+        run: npm install @openapitools/openapi-generator-cli -g
+
+      - name: Run install
+        run: npm install --ci
+
+      - name: Run generate
+        run: bash hack/generate-client.sh
+
+      - name: Create request
+        id: pr
+        uses: peter-evans/create-pull-request@v8
+        with:
+          commit-message: "feat: automated openapi client update"
+          delete-branch: true
+          branch: openapi-client-update
+          title: "feat: automated openapi client update"
+          body: "New openapi client generated, automerge should handle that!"
+          labels: openapi
+          committer: GitHub Actions <github@webhippie.de>
+          token: ${{ steps.token.outputs.token }}
+
+      - name: Approve request
+        if: ${{ steps.pr.outputs.pull-request-url }}
+        run: gh pr review --approve "${{ steps.pr.outputs.pull-request-url }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Enable automerge
+        if: ${{ steps.pr.outputs.pull-request-url }}
+        run: gh pr merge --rebase --auto "${{ steps.pr.outputs.pull-request-number }}"
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+
+...

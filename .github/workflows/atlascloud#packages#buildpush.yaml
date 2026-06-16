@@ -1,0 +1,24 @@
+---
+name: push sha container tag
+"on":
+  push:
+    branches: ["main"]
+
+permissions: read-all
+
+jobs:
+  build:
+    name: build and push
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: arduino/setup-task@v2
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test and push SHA tag
+        run: task build docker:push-sha

@@ -1,0 +1,787 @@
+---
+name: . Static Type Check
+
+'on':
+  workflow_call:
+    inputs:
+      # Workflows
+      workflow:
+        required: true
+        type: boolean
+      # Languages
+      python:
+        required: true
+        type: boolean
+      opentofu-production-airbyte:
+        required: true
+        type: boolean
+      opentofu-production-argo-cd:
+        required: true
+        type: boolean
+      opentofu-production-aws-general:
+        required: true
+        type: boolean
+      opentofu-production-aws-kubernetes:
+        required: true
+        type: boolean
+      opentofu-production-aws-network:
+        required: true
+        type: boolean
+      opentofu-production-aws-storage:
+        required: true
+        type: boolean
+      opentofu-production-grafana:
+        required: true
+        type: boolean
+      opentofu-production-harbor:
+        required: true
+        type: boolean
+      opentofu-production-nebius-applications:
+        required: true
+        type: boolean
+      opentofu-production-nebius-general:
+        required: true
+        type: boolean
+      opentofu-production-nebius-kubernetes:
+        required: true
+        type: boolean
+      opentofu-production-nebius-network:
+        required: true
+        type: boolean
+      opentofu-production-nebius-storage:
+        required: true
+        type: boolean
+      opentofu-production-snowflake-account:
+        required: true
+        type: boolean
+      opentofu-production-snowflake-data:
+        required: true
+        type: boolean
+      opentofu-production-snowflake-general:
+        required: true
+        type: boolean
+      opentofu-production-trino-gateway:
+        required: true
+        type: boolean
+      # Applications
+      api-go:
+        required: true
+        type: boolean
+      api-node:
+        required: true
+        type: boolean
+      ethereum:
+        required: true
+        type: boolean
+      grafana-hm-panel-plugin:
+        required: true
+        type: boolean
+      mobile-android:
+        required: true
+        type: boolean
+      mobile-react-native:
+        required: true
+        type: boolean
+      web-playwright:
+        required: true
+        type: boolean
+      web:
+        required: true
+        type: boolean
+
+jobs:
+  static-type-check-kotlin-mobile-android:
+    name: Kotlin (mobile-android)
+    if: ${{ inputs.workflow || inputs.mobile-android }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Java
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          distribution: corretto
+          cache: gradle
+          java-version-file: mobile/mobile-android/.java-version
+      - name: Static type check Kotlin
+        working-directory: mobile/mobile-android
+        run: |
+          ./gradlew detekt
+
+  static-type-check-python:
+    name: Python
+    if: ${{ inputs.workflow || inputs.python }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: .python-version
+      - name: Install dependencies
+        run: |
+          uv sync --dev
+      - name: Static type check Python
+        run: |
+          uv run poe static-type-check-python --package=aerospace.flightradar24
+          uv run poe static-type-check-python --package=aerospace.hm-aerosandbox
+          uv run poe static-type-check-python --package=aerospace.hm-openaerostruct
+          uv run poe static-type-check-python --package=aerospace.x-plane.rest-api
+          uv run poe static-type-check-python --package=aerospace.x-plane.udp
+          uv run poe static-type-check-python --package=api.api-python
+          uv run poe static-type-check-python --package=api.api-rust.scripts
+          uv run poe static-type-check-python --package=audio.audio-signal-analysis.hm-librosa
+          uv run poe static-type-check-python --package=audio.automatic-speech-recognition-evaluation.hm-jiwer
+          uv run poe static-type-check-python --package=audio.automatic-speech-recognition-inference.hm-faster-whisper
+          uv run poe static-type-check-python --package=audio.automatic-speech-recognition-inference.hm-speaches
+          uv run poe static-type-check-python --package=audio.automatic-speech-recognition-inference.hm-whisperx
+          uv run poe static-type-check-python --package=audio.automatic-speech-recognition-inference.nvidia-nemo
+          uv run poe static-type-check-python --package=audio.automatic-speech-recognition-inference.qwen3-asr
+          uv run poe static-type-check-python --package=audio.speaker-diarization.hm-diart
+          uv run poe static-type-check-python --package=audio.speaker-diarization.streaming-sortformer-diarizer
+          uv run poe static-type-check-python --package=audio.speech-quality-assessment.torchaudio-squim
+          uv run poe static-type-check-python --package=audio.voice-activity-detection.hm-silero-vad
+          uv run poe static-type-check-python --package=audio.voice-activity-detection.rnnoise-vad
+          uv run poe static-type-check-python --package=audio.voice-activity-detection.webrtc-vad
+          uv run poe static-type-check-python --package=autonomy.camera-radar-fusion
+          uv run poe static-type-check-python --package=cloud-computing.hm-ray.applications.calculate
+          uv run poe static-type-check-python --package=cloud-computing.hm-ray.applications.process-flight-data
+          uv run poe static-type-check-python --package=cloud-computing.hm-ray.hm-ray
+          uv run poe static-type-check-python --package=cloud-platform.aws.amazon-sagemaker.pytorch-mnist
+          uv run poe static-type-check-python --package=cloud-platform.aws.aws-parallelcluster.pcluster
+          uv run poe static-type-check-python --package=computer-vision.anyup
+          uv run poe static-type-check-python --package=computer-vision.hm-open3d
+          uv run poe static-type-check-python --package=computer-vision.hm-pyvista.mount-saint-helens
+          uv run poe static-type-check-python --package=computer-vision.hm-supervision.detect-objects
+          uv run poe static-type-check-python --package=computer-vision.vision-transformer.dinov3
+          uv run poe static-type-check-python --package=convolutional-neural-network
+          uv run poe static-type-check-python --package=data-analytics.hm-cudf.analyze-transactions
+          uv run poe static-type-check-python --package=data-analytics.hm-cupy
+          uv run poe static-type-check-python --package=data-analytics.hm-daft.analyze-transactions
+          uv run poe static-type-check-python --package=data-analytics.hm-geopandas
+          uv run poe static-type-check-python --package=data-analytics.hm-marimo
+          uv run poe static-type-check-python --package=data-analytics.hm-narwhals
+          uv run poe static-type-check-python --package=data-analytics.hm-numba
+          uv run poe static-type-check-python --package=data-analytics.hm-pandas.analyze-transactions
+          uv run poe static-type-check-python --package=data-analytics.hm-polars.analyze-transactions-cpu
+          uv run poe static-type-check-python --package=data-analytics.hm-polars.analyze-transactions-gpu
+          uv run poe static-type-check-python --package=data-crawling.hm-crawl4ai
+          uv run poe static-type-check-python --package=data-crawling.hm-firecrawl
+          uv run poe static-type-check-python --package=data-extraction.hm-docling
+          uv run poe static-type-check-python --package=data-extraction.hm-mineru
+          uv run poe static-type-check-python --package=data-extraction.hm-olmocr
+          uv run poe static-type-check-python --package=data-orchestration.hm-airflow
+          uv run poe static-type-check-python --package=data-orchestration.hm-prefect.workflows.calculate
+          uv run poe static-type-check-python --package=data-orchestration.hm-prefect.workflows.daft-analysis
+          uv run poe static-type-check-python --package=data-orchestration.hm-prefect.workflows.greet
+          uv run poe static-type-check-python --package=data-orchestration.hm-prefect.workflows.ingest-parquet-to-iceberg
+          uv run poe static-type-check-python --package=data-processing.hm-cocoindex.flows.embed-markdown-to-postgres
+          uv run poe static-type-check-python --package=data-processing.hm-pathway.pipelines.aggregate-hourly-events
+          uv run poe static-type-check-python --package=data-processing.hm-spark.applications.analyze-coffee-customers
+          uv run poe static-type-check-python --package=data-processing.hm-spark.applications.find-retired-people-python
+          uv run poe static-type-check-python --package=data-processing.hm-spark.applications.find-taxi-top-routes
+          uv run poe static-type-check-python --package=data-processing.hm-spark.applications.find-taxi-top-routes-sql
+          uv run poe static-type-check-python --package=data-processing.hm-spark.applications.recommend-movies
+          uv run poe static-type-check-python --package=data-processing.hm-spark.applications.spark-connect
+          uv run poe static-type-check-python --package=data-processing.ingest-flac-to-parquet
+          uv run poe static-type-check-python --package=data-processing.kafka.kafka-client.sticky-telemetry-stream.sticky-telemetry-stream-publisher
+          uv run poe static-type-check-python --package=data-processing.kafka.kafka-client.sticky-telemetry-stream.sticky-telemetry-stream-subscriber
+          uv run poe static-type-check-python --package=data-processing.nats.sticky-telemetry-stream.sticky-telemetry-stream-publisher
+          uv run poe static-type-check-python --package=data-processing.nats.sticky-telemetry-stream.sticky-telemetry-stream-subscriber
+          uv run poe static-type-check-python --package=data-processing.nats.telemetry-stream.telemetry-stream-publisher
+          uv run poe static-type-check-python --package=data-processing.nats.telemetry-stream.telemetry-stream-subscriber
+          uv run poe static-type-check-python --package=data-processing.pulsar.audio-stream.audio-stream-flink-compute
+          uv run poe static-type-check-python --package=data-processing.pulsar.sticky-telemetry-stream.sticky-telemetry-stream-flink-compute
+          uv run poe static-type-check-python --package=data-processing.pulsar.sticky-telemetry-stream.sticky-telemetry-stream-integration-test
+          uv run poe static-type-check-python --package=data-processing.pulsar.sticky-telemetry-stream.sticky-telemetry-stream-pulsar-publisher
+          uv run poe static-type-check-python --package=data-processing.pulsar.sticky-telemetry-stream.sticky-telemetry-stream-subscriber
+          uv run poe static-type-check-python --package=data-processing.pulsar.sticky-telemetry-stream.sticky-telemetry-stream-validate-function
+          uv run poe static-type-check-python --package=data-storage.delta-lake.read-delta-lake-by-amazon-athena
+          uv run poe static-type-check-python --package=data-storage.delta-lake.read-delta-lake-by-trino
+          uv run poe static-type-check-python --package=data-storage.delta-lake.write-to-delta-lake
+          uv run poe static-type-check-python --package=data-storage.hm-duckdb.query-duckdb
+          uv run poe static-type-check-python --package=data-storage.hm-duckdb.query-lance
+          uv run poe static-type-check-python --package=data-storage.hm-duckdb.query-parquet
+          uv run poe static-type-check-python --package=data-storage.hm-duckdb.query-protobuf
+          uv run poe static-type-check-python --package=data-storage.hm-hdf5
+          uv run poe static-type-check-python --package=data-storage.hm-lancedb
+          uv run poe static-type-check-python --package=data-storage.hm-protobuf
+          uv run poe static-type-check-python --package=data-storage.hm-vortex
+          uv run poe static-type-check-python --package=data-storage.lance
+          uv run poe static-type-check-python --package=data-storage.turso
+          uv run poe static-type-check-python --package=data-transport.arrow-flight.arrow-flight-client
+          uv run poe static-type-check-python --package=data-visualization.grafana.hm-dashboard
+          uv run poe static-type-check-python --package=data-visualization.hm-dash.csv-visualizer
+          uv run poe static-type-check-python --package=data-visualization.hm-dash.parquet-visualizer
+          uv run poe static-type-check-python --package=data-visualization.hm-plotly.heatmap
+          uv run poe static-type-check-python --package=data-visualization.hm-pygwalker
+          uv run poe static-type-check-python --package=data-visualization.iads.iads-data-manager.iads-config-reader
+          uv run poe static-type-check-python --package=data-visualization.iads.iads-data-manager.iads-data-reader
+          uv run poe static-type-check-python --package=embedded-system.decode-can-blf-data
+          uv run poe static-type-check-python --package=embedded-system.decode-can-mf4-data
+          uv run poe static-type-check-python --package=embedded-system.decode-can-trc-data
+          uv run poe static-type-check-python --package=embedded-system.format-can-data
+          uv run poe static-type-check-python --package=embedded-system.hm-serial
+          uv run poe static-type-check-python --package=embedding.hm-imagebind
+          uv run poe static-type-check-python --package=embedding.hm-model2vec
+          uv run poe static-type-check-python --package=embedding.open-clip
+          uv run poe static-type-check-python --package=ensemble-learning.boosting.hm-catboost
+          uv run poe static-type-check-python --package=ensemble-learning.boosting.hm-lightgbm
+          uv run poe static-type-check-python --package=ensemble-learning.boosting.hm-xgboost
+          uv run poe static-type-check-python --package=evolutionary-algorithm.genetic-algorithm
+          uv run poe static-type-check-python --package=generative-model.flow-matching
+          uv run poe static-type-check-python --package=generative-model.neural-ordinary-differential-equation
+          uv run poe static-type-check-python --package=generative-model.stable-diffusion
+          uv run poe static-type-check-python --package=generative-model.variational-autoencoder
+          uv run poe static-type-check-python --package=graph-neural-network
+          uv run poe static-type-check-python --package=hardware-in-the-loop.national-instruments.hm-pyvisa
+          uv run poe static-type-check-python --package=hardware-in-the-loop.national-instruments.hm-tdms
+          uv run poe static-type-check-python --package=hardware-in-the-loop.national-instruments.veristand.hm-veristand
+          uv run poe static-type-check-python --package=large-language-model-application.hm-langgraph.applications.chat-pdf
+          uv run poe static-type-check-python --package=large-language-model-application.hm-llama-index.applications.chat-pdf
+          uv run poe static-type-check-python --package=large-language-model-application.hm-pydantic-ai.applications.chat-pdf
+          uv run poe static-type-check-python --package=large-language-model-architecture.dense-transformer
+          uv run poe static-type-check-python --package=large-language-model-architecture.mixture-of-experts
+          uv run poe static-type-check-python --package=large-language-model-evaluation.hm-deepeval
+          uv run poe static-type-check-python --package=large-language-model-inference.hm-mlx-lm
+          uv run poe static-type-check-python --package=large-language-model-inference.hm-optimum
+          uv run poe static-type-check-python --package=large-language-model-inference.hm-sglang.hm-sglang
+          uv run poe static-type-check-python --package=large-language-model-inference.hm-transformers
+          uv run poe static-type-check-python --package=large-language-model-inference.kv-caching
+          uv run poe static-type-check-python --package=large-language-model-inference.speculative-decoding
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.direct-preference-optimization.low-rank-adaptation
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.fine-tune-whisper
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.group-relative-policy-optimization.low-rank-adaptation
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.hm-axolotl
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.hm-llama-factory
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.hm-swift
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.hm-tinker
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.hm-torchtune
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.hm-unsloth
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.proximal-policy-optimization.low-rank-adaptation
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.supervised-fine-tuning.low-rank-adaptation
+          uv run poe static-type-check-python --package=large-language-model-post-training.fine-tuning.supervised-fine-tuning.quantized-low-rank-adaptation
+          uv run poe static-type-check-python --package=large-language-model-post-training.post-training-quantization
+          uv run poe static-type-check-python --package=large-language-model-pre-training.training-optimization.automatic-mixed-precision
+          uv run poe static-type-check-python --package=large-language-model-pre-training.training-optimization.hm-deepspeed
+          uv run poe static-type-check-python --package=large-language-model-pre-training.training-paradigm.causal-language-model.qwen3
+          uv run poe static-type-check-python --package=large-language-model-pre-training.training-paradigm.masked-language-model.convert-modern-bert-to-core-ml
+          uv run poe static-type-check-python --package=large-language-model-pre-training.training-paradigm.masked-language-model.modern-bert
+          uv run poe static-type-check-python --package=large-language-model-pre-training.training-paradigm.masked-language-model.neo-bert
+          uv run poe static-type-check-python --package=liquid-neural-network
+          uv run poe static-type-check-python --package=load-testing.hm-locust
+          uv run poe static-type-check-python --package=machine-learning.configuration-management.hm-hydra-zen
+          uv run poe static-type-check-python --package=machine-learning.core-ml-tools
+          uv run poe static-type-check-python --package=machine-learning.feature-store
+          uv run poe static-type-check-python --package=machine-learning.hm-cuml
+          uv run poe static-type-check-python --package=machine-learning.hm-gradio.applications.classify-image
+          uv run poe static-type-check-python --package=machine-learning.hm-kubeflow.pipelines.calculate
+          uv run poe static-type-check-python --package=machine-learning.hm-kubeflow.pipelines.classify-mnist
+          uv run poe static-type-check-python --package=machine-learning.hm-metaflow.flows.greet
+          uv run poe static-type-check-python --package=machine-learning.hm-mlflow.experiments.classify-mnist
+          uv run poe static-type-check-python --package=machine-learning.hm-nvidia-modulus
+          uv run poe static-type-check-python --package=machine-learning.hm-scikit-learn
+          uv run poe static-type-check-python --package=machine-learning.hm-streamlit.applications.live-line-chart
+          uv run poe static-type-check-python --package=machine-learning.hm-streamlit.applications.map
+          uv run poe static-type-check-python --package=machine-learning.hugging-face
+          uv run poe static-type-check-python --package=machine-learning.hyperparameter-optimization.hm-optuna
+          uv run poe static-type-check-python --package=machine-learning.model-context-protocol
+          uv run poe static-type-check-python --package=machine-learning.neural-forecasting.forecast-air-passenger-number
+          uv run poe static-type-check-python --package=machine-learning.nvidia-dali
+          uv run poe static-type-check-python --package=machine-learning.nvidia-triton-inference-server.amazon-sagemaker-triton-resnet-50.deploy
+          uv run poe static-type-check-python --package=machine-learning.nvidia-triton-inference-server.amazon-sagemaker-triton-resnet-50.infer
+          uv run poe static-type-check-python --package=multimodal-model.vision-language-action-model.alpamayo-1
+          uv run poe static-type-check-python --package=multimodal-model.vision-language-action-model.hm-openpi
+          uv run poe static-type-check-python --package=multimodal-model.vision-language-action-model.openvla
+          uv run poe static-type-check-python --package=multimodal-model.vision-language-action-model.vision-language-action.infer
+          uv run poe static-type-check-python --package=multimodal-model.vision-language-action-model.vision-language-action.lib
+          uv run poe static-type-check-python --package=multimodal-model.vision-language-action-model.vision-language-action.train
+          uv run poe static-type-check-python --package=named-entity-recognition.bert
+          uv run poe static-type-check-python --package=named-entity-recognition.hm-gliner
+          uv run poe static-type-check-python --package=parallel-computing.hm-taichi.count-primes
+          uv run poe static-type-check-python --package=parallel-computing.hm-taichi.fluid-solver
+          uv run poe static-type-check-python --package=parallel-computing.hm-triton
+          uv run poe static-type-check-python --package=physics.hm-genesis
+          uv run poe static-type-check-python --package=quantum-computing
+          uv run poe static-type-check-python --package=reinforcement-learning.q-learning
+          uv run poe static-type-check-python --package=scientific-computing.hm-sunpy
+          uv run poe static-type-check-python --package=scientific-computing.surrogate-model
+          uv run poe static-type-check-python --package=security.hm-opal-client
+          uv run poe static-type-check-python --package=small-language-model.gemma
+          uv run poe static-type-check-python --package=state-space-model.mamba2
+          uv run poe static-type-check-python --package=system-tool.hm-xxhash
+          uv run poe static-type-check-python --package=tokenization.byte-pair-encoding
+          uv run poe static-type-check-python --package=vision-language-model.qwen-vl
+          uv run poe static-type-check-python --package=wireless.software-defined-radio.gnu-radio-receiver
+          uv run poe static-type-check-python --package=wireless.software-defined-radio.limesdr-transceiver
+          uv run poe static-type-check-python --package=world-foundation-model.nvidia-cosmos
+
+  static-type-check-opentofu-production-airbyte:
+    name: OpenTofu (production/airbyte)
+    if: ${{ inputs.workflow || inputs.opentofu-production-airbyte }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/airbyte
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/airbyte
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-argo-cd:
+    name: OpenTofu (production/argo-cd)
+    if: ${{ inputs.workflow || inputs.opentofu-production-argo-cd }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/argo-cd
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/argo-cd
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-aws-general:
+    name: OpenTofu (production/aws/general)
+    if: ${{ inputs.workflow || inputs.opentofu-production-aws-general }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/general
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/general
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-aws-kubernetes:
+    name: OpenTofu (production/aws/kubernetes)
+    if: ${{ inputs.workflow || inputs.opentofu-production-aws-kubernetes }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/kubernetes
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/kubernetes
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-aws-network:
+    name: OpenTofu (production/aws/network)
+    if: ${{ inputs.workflow || inputs.opentofu-production-aws-network }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/network
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/network
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-aws-storage:
+    name: OpenTofu (production/aws/storage)
+    if: ${{ inputs.workflow || inputs.opentofu-production-aws-storage }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/storage
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/aws/storage
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-harbor:
+    name: OpenTofu (production/harbor)
+    if: ${{ inputs.workflow || inputs.opentofu-production-harbor }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/harbor
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/harbor
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-grafana:
+    name: OpenTofu (production/grafana)
+    if: ${{ inputs.workflow || inputs.opentofu-production-grafana }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/grafana
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/grafana
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-nebius-applications:
+    name: OpenTofu (production/nebius/applications)
+    if: ${{ inputs.workflow || inputs.opentofu-production-nebius-applications }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/applications
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/applications
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-nebius-general:
+    name: OpenTofu (production/nebius/general)
+    if: ${{ inputs.workflow || inputs.opentofu-production-nebius-general }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/general
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/general
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-nebius-kubernetes:
+    name: OpenTofu (production/nebius/kubernetes)
+    if: ${{ inputs.workflow || inputs.opentofu-production-nebius-kubernetes }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/kubernetes
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/kubernetes
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-nebius-network:
+    name: OpenTofu (production/nebius/network)
+    if: ${{ inputs.workflow || inputs.opentofu-production-nebius-network }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/network
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/network
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-nebius-storage:
+    name: OpenTofu (production/nebius/storage)
+    if: ${{ inputs.workflow || inputs.opentofu-production-nebius-storage }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/storage
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/nebius/storage
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-snowflake-account:
+    name: OpenTofu (production/snowflake/account)
+    if: ${{ inputs.workflow || inputs.opentofu-production-snowflake-account }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/snowflake/account
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/snowflake/account
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-snowflake-general:
+    name: OpenTofu (production/snowflake/general)
+    if: ${{ inputs.workflow || inputs.opentofu-production-snowflake-general }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/snowflake/general
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/snowflake/general
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-snowflake-data:
+    name: OpenTofu (production/snowflake/storage)
+    if: ${{ inputs.workflow || inputs.opentofu-production-snowflake-data }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/snowflake/storage
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/snowflake/storage
+        run: |
+          tofu validate
+
+  static-type-check-opentofu-production-trino-gateway:
+    name: OpenTofu (production/trino-gateway)
+    if: ${{ inputs.workflow || inputs.opentofu-production-trino-gateway }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up OpenTofu
+        uses: opentofu/setup-opentofu@847eaa4afeb791b06daa46e8eafa8b1b68d7cfb4 # v2.0.1
+      - name: Initialize OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/trino-gateway
+        run: |
+          tofu init -backend=false
+      - name: Static type check OpenTofu
+        working-directory: infrastructure/opentofu/environments/production/trino-gateway
+        run: |
+          tofu validate
+
+  static-type-check-typescript-api-node:
+    name: TypeScript (api-node)
+    if: ${{ inputs.workflow || inputs.api-node }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: api/api-node/.node-version
+          cache: npm
+          cache-dependency-path: api/api-node/package-lock.json
+      - name: Install dependencies
+        working-directory: api/api-node
+        run: |
+          npm ci
+      - name: Static type check TypeScript
+        working-directory: api/api-node
+        run: |
+          npm run static-type-check-typescript
+
+  static-type-check-typescript-ethereum:
+    name: TypeScript (ethereum)
+    if: ${{ inputs.workflow || inputs.ethereum }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: ethereum/.node-version
+          cache: npm
+          cache-dependency-path: ethereum/package-lock.json
+      - name: Install dependencies
+        working-directory: ethereum
+        run: |
+          npm ci
+      - name: Static type check TypeScript
+        working-directory: ethereum
+        run: |
+          npm run static-type-check-typescript
+
+  static-type-check-typescript-grafana-hm-panel-plugin:
+    name: TypeScript (grafana-hm-panel-plugin)
+    if: ${{ inputs.workflow || inputs.grafana-hm-panel-plugin }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: data-visualization/grafana/hm-panel-plugin/.node-version
+          cache: npm
+          cache-dependency-path: data-visualization/grafana/hm-panel-plugin/package-lock.json
+      - name: Install dependencies
+        working-directory: data-visualization/grafana/hm-panel-plugin
+        run: |
+          npm ci
+      - name: Static type check TypeScript
+        working-directory: data-visualization/grafana/hm-panel-plugin
+        run: |
+          npm run static-type-check-typescript
+
+  static-type-check-typescript-mobile-react-native:
+    name: TypeScript (mobile-react-native)
+    if: ${{ inputs.workflow || inputs.mobile-react-native }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: mobile/mobile-react-native/.node-version
+          cache: npm
+          cache-dependency-path: mobile/mobile-react-native/package-lock.json
+      - name: Install dependencies
+        working-directory: mobile/mobile-react-native
+        run: |
+          npm ci
+      - name: Static type check TypeScript
+        working-directory: mobile/mobile-react-native
+        run: |
+          npm run static-type-check-typescript
+
+  static-type-check-typescript-web:
+    name: TypeScript (web)
+    if: ${{ inputs.workflow || inputs.web }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: web/.node-version
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        working-directory: web
+        run: |
+          npm ci
+      - name: Static type check TypeScript
+        working-directory: web
+        run: |
+          npm run static-type-check-typescript
+
+  static-type-check-typescript-web-playwright:
+    name: TypeScript (web-playwright)
+    if: ${{ inputs.workflow || inputs.web-playwright }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Node.js
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+        with:
+          node-version-file: web-playwright/.node-version
+          cache: npm
+          cache-dependency-path: web-playwright/package-lock.json
+      - name: Install dependencies
+        working-directory: web-playwright
+        run: |
+          npm ci
+      - name: Static type check TypeScript
+        working-directory: web-playwright
+        run: |
+          npm run static-type-check-typescript

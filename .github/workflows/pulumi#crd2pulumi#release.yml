@@ -1,0 +1,49 @@
+permissions: write-all # Equivalent to default permissions plus id-token: write
+name: release
+"on":
+  push:
+    tags:
+      - v*.*.*
+      - "!v*.*.*-**"
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  ESC_ACTION_OIDC_AUTH: true
+  ESC_ACTION_OIDC_ORGANIZATION: pulumi
+  ESC_ACTION_OIDC_REQUESTED_TOKEN_TYPE: urn:pulumi:token-type:access_token:organization
+  ESC_ACTION_ENVIRONMENT: github-secrets/pulumi-crd2pulumi
+  ESC_ACTION_EXPORT_ENVIRONMENT_VARIABLES: false
+
+jobs:
+  goreleaser:
+    runs-on: macos-latest
+    steps:
+      - name: Fetch secrets from ESC
+        id: esc-secrets
+        uses: pulumi/esc-action@f3cfbabf37488463817366338165b92b5f99117e # v2
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install pulumictl
+        uses: jaxxstorm/action-install-gh-release@v1.1.0
+        with:
+          repo: pulumi/pulumictl
+      - name: Install Go
+        uses: actions/setup-go@v4
+        with:
+          go-version-file: go.mod
+          cache-dependency-path: |
+            **/go.sum
+      - name: Goreleaser publish
+        uses: goreleaser/goreleaser-action@v3
+        with:
+          distribution: goreleaser
+          version: v1.26.2
+          args: release --rm-dist
+        env:
+          GITHUB_TOKEN: ${{ steps.esc-secrets.outputs.PULUMI_BOT_TOKEN }}
+      - name: Chocolatey Package Deployment
+        run: |
+          CURRENT_TAG=$(pulumictl get version --language generic -o)
+          pulumictl create choco-deploy -a crd2pulumi ${CURRENT_TAG}
+        env:
+          GITHUB_TOKEN: ${{ steps.esc-secrets.outputs.PULUMI_BOT_TOKEN }}

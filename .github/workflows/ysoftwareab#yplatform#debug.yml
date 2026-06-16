@@ -1,0 +1,52 @@
+name: debug
+'on':
+  schedule:
+    - cron: 0 */6 * * *
+  workflow_dispatch: null
+concurrency:
+  group: 'main'
+  cancel-in-progress: true
+jobs:
+  main:
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        'runs-on':
+          # - ubuntu-18.04
+          - ubuntu-20.04
+          - ubuntu-22.04
+          # - macos-10.15
+          # - macos-11
+          - macos-12
+          - macos-13
+          - windows-2019
+          - windows-2022
+    name: '${{ matrix.runs-on }}'
+    runs-on: '${{ matrix.runs-on }}'
+    steps:
+      - uses: ysoftwareab/yplatform/.github/actions/debug@master
+        with:
+          file: debug.new.txt
+      - id: cache-keys
+        shell: bash
+        run: echo "yyyymm=$(/bin/date -u \"+%Y%m\")" >> ${GITHUB_OUTPUT}
+      - id: cache-keys-output
+        shell: bash
+        run: echo steps.cache-keys.output.yyyymm="${{ steps.cache-keys.output.yyyymm }}"
+      - id: cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            debug.txt
+          key: ${{ matrix.runs-on }}-output-${{ steps.cache-keys.output.yyyymm }}-v1
+          'restore-keys': |
+            ${{ matrix.runs-on }}-output-${{ steps.cache-keys.output.yyyymm }}-v1
+      - if: steps.cache.outputs.cache-hit == 'true'
+        shell: bash
+        # TODO nice if one can ignore values that are ever changing, and report only relevant diffs
+        run: |
+          diff --unified=1000000 debug.txt debug.new.txt || true
+      - shell: bash
+        run: |
+          mv debug.new.txt debug.txt

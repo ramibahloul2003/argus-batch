@@ -1,0 +1,495 @@
+---
+name: . Test Data Storage
+
+'on':
+  workflow_call:
+    inputs:
+      # Workflows
+      workflow:
+        required: true
+        type: boolean
+      # Applications
+      delta-lake-read-delta-lake-by-amazon-athena:
+        required: true
+        type: boolean
+      delta-lake-read-delta-lake-by-trino:
+        required: true
+        type: boolean
+      delta-lake-write-to-delta-lake:
+        required: true
+        type: boolean
+      hm-duckdb-query-duckdb:
+        required: true
+        type: boolean
+      hm-duckdb-query-lance:
+        required: true
+        type: boolean
+      hm-duckdb-query-parquet:
+        required: true
+        type: boolean
+      hm-duckdb-query-protobuf:
+        required: true
+        type: boolean
+      hm-hdf5:
+        required: true
+        type: boolean
+      hm-lancedb:
+        required: true
+        type: boolean
+      hm-protobuf:
+        required: true
+        type: boolean
+      hm-vortex:
+        required: true
+        type: boolean
+      lance:
+        required: true
+        type: boolean
+      prometheus:
+        required: true
+        type: boolean
+      turso:
+        required: true
+        type: boolean
+
+jobs:
+  turso-test:
+    name: Turso | Test
+    if: ${{ inputs.workflow || inputs.turso }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/turso/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/turso/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/turso
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/turso
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/turso
+
+  duckdb-query-duckdb-test:
+    name: DuckDB (query-duckdb) | Test
+    if: ${{ inputs.workflow || inputs.hm-duckdb-query-duckdb }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-duckdb/query-duckdb/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-duckdb/query-duckdb/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-duckdb/query-duckdb
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-duckdb/query-duckdb
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-duckdb/query-duckdb
+
+  duckdb-query-lance-test:
+    name: DuckDB (query-lance) | Test
+    if: ${{ inputs.workflow || inputs.hm-duckdb-query-lance }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-duckdb/query-lance/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-duckdb/query-lance/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-duckdb/query-lance
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-duckdb/query-lance
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-duckdb/query-lance
+
+  duckdb-query-parquet-test:
+    name: DuckDB (query-parquet) | Test
+    if: ${{ inputs.workflow || inputs.hm-duckdb-query-parquet }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-duckdb/query-parquet/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-duckdb/query-parquet/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-duckdb/query-parquet
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-duckdb/query-parquet
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-duckdb/query-parquet
+
+  duckdb-query-protobuf-test:
+    name: DuckDB (query-protobuf) | Test
+    if: ${{ inputs.workflow || inputs.hm-duckdb-query-protobuf }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-duckdb/query-protobuf/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-duckdb/query-protobuf/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-duckdb/query-protobuf
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-duckdb/query-protobuf
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-duckdb/query-protobuf
+
+  delta-lake-read-delta-lake-by-amazon-athena-test:
+    name: Delta Lake (read-delta-lake-by-amazon-athena) | Test
+    if: ${{ inputs.workflow || inputs.delta-lake-read-delta-lake-by-amazon-athena }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/delta-lake/read-delta-lake-by-amazon-athena/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/delta-lake/read-delta-lake-by-amazon-athena/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/delta-lake/read-delta-lake-by-amazon-athena
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/delta-lake/read-delta-lake-by-amazon-athena
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/delta-lake/read-delta-lake-by-amazon-athena
+
+  delta-lake-read-delta-lake-by-trino-test:
+    name: Delta Lake (read-delta-lake-by-trino) | Test
+    if: ${{ inputs.workflow || inputs.delta-lake-read-delta-lake-by-trino }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/delta-lake/read-delta-lake-by-trino/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/delta-lake/read-delta-lake-by-trino/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/delta-lake/read-delta-lake-by-trino
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/delta-lake/read-delta-lake-by-trino
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/delta-lake/read-delta-lake-by-trino
+
+  delta-lake-write-to-delta-lake-test:
+    name: Delta Lake (write-to-delta-lake) | Test
+    if: ${{ inputs.workflow || inputs.delta-lake-write-to-delta-lake }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/delta-lake/write-to-delta-lake/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/delta-lake/write-to-delta-lake/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/delta-lake/write-to-delta-lake
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/delta-lake/write-to-delta-lake
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/delta-lake/write-to-delta-lake
+
+  lance-test:
+    name: Lance | Test
+    if: ${{ inputs.workflow || inputs.lance }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/lance/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/lance/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/lance
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/lance
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/lance
+
+  lancedb-test:
+    name: LanceDB | Test
+    if: ${{ inputs.workflow || inputs.hm-lancedb }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-lancedb/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-lancedb/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-lancedb
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-lancedb
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-lancedb
+
+  protobuf-test:
+    name: Protobuf | Test
+    if: ${{ inputs.workflow || inputs.hm-protobuf }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-protobuf/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-protobuf/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-protobuf
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-protobuf
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-protobuf
+
+  vortex-test:
+    name: Vortex | Test
+    if: ${{ inputs.workflow || inputs.hm-vortex }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-vortex/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-vortex/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-vortex
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-vortex
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-vortex
+
+  hdf5-test:
+    name: HDF5 | Test
+    if: ${{ inputs.workflow || inputs.hm-hdf5 }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-storage/hm-hdf5/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-storage/hm-hdf5/.python-version
+      - name: Install dependencies
+        working-directory: data-storage/hm-hdf5
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-storage/hm-hdf5
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-storage/hm-hdf5
+
+  prometheus-test:
+    name: Prometheus | Test
+    if: ${{ inputs.workflow || inputs.prometheus }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Test
+        run: |
+          docker build --file=data-storage/prometheus/Dockerfile.test .

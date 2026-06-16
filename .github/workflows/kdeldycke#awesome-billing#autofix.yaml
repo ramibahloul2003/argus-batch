@@ -1,0 +1,15 @@
+---
+name: 🪄 Autofix
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  autofix:
+    uses: kdeldycke/repomatic/.github/workflows/autofix.yaml@ba0f8e2bc9d7967d598f7f4f1f10ff923edcc1a7 # v6.18.4
+    secrets:
+      REPOMATIC_PAT: ${{ secrets.REPOMATIC_PAT }}
+      VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}

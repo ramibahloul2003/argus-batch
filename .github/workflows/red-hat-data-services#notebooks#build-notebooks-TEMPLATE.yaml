@@ -1,0 +1,723 @@
+# inspired by
+# https://github.com/thesuperzapper/kubeflow/blob/master/.github/workflows/example_notebook_servers_publish_TEMPLATE.yaml
+---
+name: Build & Publish Notebook Servers (TEMPLATE)
+"on":
+  workflow_call:
+    inputs:
+      # https://docs.github.com/en/actions/learn-github-actions/variables#default-environment-variables
+      # https://docs.github.com/en/actions/learn-github-actions/contexts
+      target:
+        required: true
+        description: "make target to build"
+        type: string
+      python:
+        required: true
+        description: "python version"
+        type: string
+      github:
+        required: true
+        description: "top workflow's `github`"
+        type: string
+      platform:
+        required: true
+        description: "platform to build, podman build --platform="
+        type: string
+      subscription:
+        required: false
+        default: false
+        description: "add RHEL subscription from github secret"
+        type: boolean
+      konflux:
+        required: false
+        default: false
+        description: "build from Dockerfile.konflux.* instead of Dockerfile.*"
+        type: boolean
+      PLATFORM_RUNNERS:
+        required: false
+        # language=json
+        default: >-
+          {
+            "linux/amd64": "ubuntu-24.04",
+            "linux/arm64": "ubuntu-24.04-arm",
+            "linux/ppc64le": "ubuntu-24.04",
+            "linux/s390x": "ubuntu-24.04"
+          }
+        description: "Available contexts for runs-on are: github, inputs, matrix, needs, strategy, vars. Let's use inputs"
+        type: string
+
+jobs:
+  build:
+    name: "${{ inputs.konflux && 'rhoai' || 'odh' }}"
+    # https://docs.github.com/en/actions/how-tos/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for-public-repositories
+    runs-on: ${{ fromJSON(inputs.PLATFORM_RUNNERS)[inputs.platform] || 'no-such-runner' }}
+    env:
+      # Some pieces of code (image pulls, for example) in podman consult TMPDIR or default to /var/tmp
+      TMPDIR: /home/runner/.local/share/containers/tmpdir
+      # Use the rootful instance of podman for sharing images with cri-o
+      # https://podman-desktop.io/blog/sharing-podman-images-with-kubernetes-cluster#introduction
+      # https://access.redhat.com/solutions/6986565
+      CONTAINER_HOST: unix:///var/run/podman/podman.sock
+      # We don't push here when building PRs, so we can use the same IMAGE_REGISTRY in all branches of the workflow
+      IMAGE_REGISTRY: "ghcr.io/${{ github.repository }}/workbench-images"
+      # GitHub image registry used for storing $(CONTAINER_ENGINE)'s cache
+      CACHE: "ghcr.io/${{ github.repository }}/workbench-images/build-cache"
+      # https://github.com/aquasecurity/trivy
+      TRIVY_VERSION: 0.70.0
+      # Targets (and their folder) that should be scanned using FS instead of IMAGE scan due to resource constraints
+      TRIVY_SCAN_FS_JSON: '{}'
+      # Makefile variables
+      BUILD_ARCH: ${{ inputs.platform }}
+      RELEASE_PYTHON_VERSION: ${{ inputs.python }}
+      # Faster/smaller cache restore on resource-constrained runners (e.g. arm64). RHAIENG-2819
+      GHA_CACHE_ZSTD_LEVEL: "3"
+
+    steps:
+
+      # image repository name must be lowercase
+      - name: downcase IMAGE_REGISTRY and CACHE
+        run: |
+          echo "IMAGE_REGISTRY=${IMAGE_REGISTRY,,}" >>${GITHUB_ENV}
+          echo "CACHE=${CACHE,,}" >>${GITHUB_ENV}
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        if: ${{ fromJson(inputs.github).event_name != 'pull_request_target' }}
+        with:
+          # Full history: shallow clone + Hermeto’s symlink-preserving source copy makes
+          # `git fetch` tags on the superproject fail (submodule path via symlink).
+          fetch-depth: 0
+          lfs: ${{ contains(inputs.target, 'codeserver') }}
+          submodules: recursive
+          persist-credentials: false  # https://github.com/actions/checkout/issues/2312
+      # we need to checkout the pr branch, not pr target (the default for pull_request_target)
+      # user access check is done in calling workflow
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd  # v6.0.2
+        if: ${{ fromJson(inputs.github).event_name == 'pull_request_target' }}
+        with:
+          ref: "refs/pull/${{ fromJson(inputs.github).event.number }}/merge"
+          fetch-depth: 0
+          lfs: ${{ contains(inputs.target, 'codeserver') }}
+          submodules: recursive
+          persist-credentials: false  # https://github.com/actions/checkout/issues/2312
+
+      # https://github.com/docker/setup-qemu-action?tab=readme-ov-file#about
+      # https://www.itix.fr/blog/qemu-user-static-with-podman/
+      - name: Set up QEMU for non-native architecture
+        if: ${{ contains(fromJSON('["linux/s390x", "linux/ppc64le"]'), inputs.platform) }}
+        run: docker run --rm --privileged tonistiigi/binfmt --install ${platform#*/}
+        env:
+          platform: ${{ inputs.platform }}
+
+      - run: mkdir -p $TMPDIR
+
+      # do this early because it's fast and why not
+      - name: Install git-crypt
+        if: ${{ inputs.subscription }}
+        uses: ./.github/actions/apt-install
+        with:
+          packages: git-crypt
+
+      - name: Unlock encrypted secrets with git-crypt
+        if: ${{ inputs.subscription }}
+        run: |
+          echo "${GIT_CRYPT_KEY}" | base64 --decode > ./git-crypt-key
+          git-crypt unlock ./git-crypt-key
+          rm ./git-crypt-key
+        env:
+          GIT_CRYPT_KEY: ${{ secrets.GIT_CRYPT_KEY }}
+
+      # https://console.redhat.com/insights/connector/activation-keys
+      # This runs slower than storing the entitlement certificates with git-crypt,
+      #  but on the other hand, it's then not necessary to regularly update them in the repo.
+      - name: Add subscriptions from GitHub secret
+        if: ${{ inputs.subscription }}
+        run: |
+          # https://access.redhat.com/solutions/5870841
+          # https://github.com/containers/common/issues/1735
+          mkdir entitlement
+          mkdir consumer
+          docker run \
+            --platform=${{ inputs.platform }} \
+            -v ${PWD}/entitlement:/etc/pki/entitlement:Z \
+            -v ${PWD}/consumer:/etc/pki/consumer:Z \
+            --rm -t registry.access.redhat.com/ubi9/ubi \
+              /usr/sbin/subscription-manager register --org=${SUBSCRIPTION_ORG} --activationkey=${SUBSCRIPTION_ACTIVATION_KEY}
+          printf "${PWD}/entitlement:/etc/pki/entitlement\n${PWD}/consumer:/etc/pki/consumer\n" | sudo tee /usr/share/containers/mounts.conf
+
+          mkdir -p $HOME/.config/containers/
+
+          # Don't use sudo here.
+          # With CONTAINER_HOST set, podman is a remote client that forwards auth to the
+          # rootful server during builds. Credentials must be readable by the runner user.
+          cp ${PWD}/ci/secrets/pull-secret.json $HOME/.config/containers/auth.json
+        env:
+          SUBSCRIPTION_ORG: ${{ secrets.SUBSCRIPTION_ORG }}
+          SUBSCRIPTION_ACTIVATION_KEY: ${{ secrets.SUBSCRIPTION_ACTIVATION_KEY }}
+
+      # for bin/buildinputs in scripts/sandbox.py and check-payload FIPS scan
+      - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c  # v6.4.0
+        with:
+          go-version: "stable"
+          cache-dependency-path: |
+            scripts/buildinputs/go.mod
+            scripts/check-payload/go.mod
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121  # v4.1.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # region Free up disk space
+
+      - name: Free up disk space
+        uses: ./.github/actions/free-up-disk-space
+        # https://docs.github.com/en/actions/learn-github-actions/expressions
+        # NOTE: the arm64 GitHub hosted runner does not have the /mnt-mounted scratch disk
+        if: "${{ contains(inputs.target, 'rocm') || contains(inputs.target, 'cuda') ||
+         contains(inputs.target, 'pytorch') || contains(inputs.target, 'tensorflow') ||
+         contains(inputs.target, 'codeserver') || inputs.platform == 'linux/arm64' }}"
+
+      - name: Install btrfs-compsize
+        id: install-compsize
+        uses: ./.github/actions/apt-install
+        with:
+          packages: btrfs-compsize
+
+      - name: Mount lvm overlay for podman builds
+        run: |
+          df -h
+          free -h
+
+          bash ./ci/cached-builds/gha_lvm_overlay.sh
+
+          df -h
+          free -h
+
+      # endregion
+
+      # region Podman setup
+
+      - name: Install Podman
+        uses: './.github/actions/install-podman-action'
+        with:
+          platform: ${{ inputs.platform }}
+
+      - name: Calculate image name and tag
+        id: calculated_vars
+        shell: python
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          SHA: ${{ github.sha }}
+          TARGET: ${{ inputs.target }}
+          REGISTRY: ${{ env.IMAGE_REGISTRY }}
+          PLATFORM: ${{ inputs.platform }}
+          KONFLUX: ${{ inputs.konflux }}
+        # language=python
+        run: |
+          import os, re, sys
+          from dataclasses import dataclass
+
+          @dataclass
+          class Env:
+              REF_NAME: str
+              SHA: str
+              TARGET: str
+              REGISTRY: str
+              PLATFORM: str
+              KONFLUX: str
+
+              @classmethod
+              def from_env(cls):
+                  return cls(**{k: os.environ[k] for k in cls.__annotations__})
+
+          # Need for sanitization explained in https://github.com/opendatahub-io/notebooks/issues/631
+          # Docker image tags have a 128-character limit.
+          # We calculate the max allowed length for ref_name dynamically to ensure compliance.
+          INVALID_TAG_CHARS_RE = re.compile(r'[^a-zA-Z0-9._-]')
+          def sanitize(s: str) -> str:
+              return INVALID_TAG_CHARS_RE.sub('_', s)
+
+          env = Env.from_env()
+
+          sanitized_ref = sanitize(env.REF_NAME)
+          sanitized_platform = sanitize(env.PLATFORM)
+
+          # Build a suffix from build type and platform so that different
+          # odh/rhoai builds and architectures get distinct tags.
+          build_type = "rhoai" if env.KONFLUX == "true" else "odh"
+          suffix = f"{build_type}_{sanitized_platform}"
+
+          # 7-char SHA prefix is enough to identify a commit uniquely
+          short_sha = env.SHA[:7]
+
+          # Total tag = {target}-{ref}_{short_sha}_{suffix}
+          # Separators: 1 '-' + 2 '_' = 3 fixed chars
+          max_ref_len = 128 - len(env.TARGET) - len(short_sha) - len(suffix) - 3
+
+          if max_ref_len < 1:
+              print(f"::error::Target name '{env.TARGET}' ({len(env.TARGET)} chars) is too long to accommodate a branch name and commit SHA within the 128-character Docker tag limit.", file=sys.stderr)
+              sys.exit(1)
+
+          image_tag = f"{sanitized_ref[:max_ref_len]}_{short_sha}_{suffix}"
+          full_tag = f"{env.TARGET}-{image_tag}"
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"IMAGE_TAG={image_tag}\n")
+              f.write(f"OUTPUT_IMAGE={env.REGISTRY}:{full_tag}\n")
+              f.write(f"SANITIZED_PLATFORM={sanitized_platform}\n")
+              f.write(f"BUILD_TYPE={build_type}\n")
+
+      # endregion
+
+      - name: "${{ steps.calculated_vars.outputs.BUILD_TYPE }} · ${{ inputs.target }}"
+        shell: python
+        env:
+          BUILD_TYPE: ${{ steps.calculated_vars.outputs.BUILD_TYPE }}
+          TARGET: ${{ inputs.target }}
+          PLATFORM: ${{ inputs.platform }}
+          OUTPUT_IMAGE: ${{ steps.calculated_vars.outputs.OUTPUT_IMAGE }}
+        # language=python
+        run: |
+          import os, sys
+          from dataclasses import dataclass
+          from typing import TextIO
+
+          @dataclass
+          class BuildInfo:
+              BUILD_TYPE: str
+              TARGET: str
+              PLATFORM: str
+              OUTPUT_IMAGE: str
+
+              @classmethod
+              def from_env(cls):
+                  return cls(**{k: os.environ[k] for k in cls.__annotations__})
+
+              def write(self, f: TextIO):
+                  for attr, value in self.__dict__.items():
+                      key = attr.title().replace("_", " ")
+                      f.write(f"**{key}**: {value}\n")
+
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a") as f:
+              f.write("### Build Info\n")
+              BuildInfo.from_env().write(f)
+
+      # region Image build
+
+      - name: Login to quay.io/aipcc (if the secret is present)
+        # if: for the ${{ secret != '' }} does not work, getting Unrecognized named-value: 'secrets'.
+        shell: bash
+        run: |
+          if [[ "${{ secrets.AIPCC_QUAY_BOT_USERNAME }}" == "" ]]; then
+            echo "AIPCC_QUAY_BOT_USERNAME is not set, skipping login"
+            exit 0
+          fi
+          echo "${{ secrets.AIPCC_QUAY_BOT_PASSWORD }}" | podman login quay.io/aipcc -u "${{ secrets.AIPCC_QUAY_BOT_USERNAME }}" --password-stdin
+
+      # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#push
+      # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#pull_request
+
+      # We use `CONTAINER_BUILD_CACHE_ARGS` to smuggle in various misc `podman build` args, not just cache-related ones
+      - name: Compute CONTAINER_BUILD_CACHE_ARGS
+        id: extra-container-build-args
+        shell: python
+        # language=python
+        run: |
+          import os
+          import sys
+          from typing import Literal
+
+          extra_podman_build_args = ""
+          if "${{ inputs.platform }}" == "linux/s390x":
+             # workaround for known issue https://github.com/zeromq/libzmq/pull/4486
+             # In qemu-user, CACHELINE_SIZE probe is undefined
+             # Compiling pyzmq through UV needs this in CFLAGS
+             extra_podman_build_args += '--env=CFLAGS=-Dundefined=64 --env=CXXFLAGS=-Dundefined=64 --unsetenv=CFLAGS --unsetenv=CXXFLAGS'
+
+          if "codeserver" in "${{ inputs.target }}":
+             # Hermetic codeserver builds compile from source on every run — there
+             # is no effective layer cache to reuse.  --layers=false stops podman
+             # from persisting intermediate layers within each stage, cutting peak
+             # disk use roughly in half.
+             extra_podman_build_args += ' --layers=false'
+             # GHA runners (16GB RAM) need reduced VS Code build parallelism.
+             # apply-patch.sh checks GHA_BUILD and runs patches/tweak-gha.sh.
+             extra_podman_build_args += ' --build-arg GHA_BUILD=true'
+
+          event_name: Literal['push', 'pull_request', 'pull_request_target', 'schedule', 'workflow_dispatch'] = "${{ fromJson(inputs.github).event_name }}"
+          cache = "${{ env.CACHE }}"
+
+          if event_name == "schedule":
+              # For schedule events, skip --cache-from to regenerate cache
+              cache_args = f"--cache-to {cache}"
+              print("Regenerating cache (schedule event)", file=sys.stderr)
+          elif event_name == "push" or event_name == "workflow_dispatch":
+              # push or workflow_dispatch: use and update cache
+              cache_args = f"--cache-from {cache} --cache-to {cache}"
+              print("Using and updating cache", file=sys.stderr)
+          elif event_name == "pull_request" or event_name == "pull_request_target":
+              # pull_request/pull_request_target: use cache, but we don't have write access, so we can't update even if we wanted to
+              cache_args = f"--cache-from {cache}"
+              print("Using cache", file=sys.stderr)
+          else:
+              raise ValueError(f"Unexpected event name: {event_name}")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+             f.write(f"CONTAINER_BUILD_CACHE_ARGS={extra_podman_build_args} {cache_args}\n")
+
+      # Hermetic builds: when the target ships a prefetch-input/ directory,
+      # download all dependencies into cachi2/output/ so the Dockerfile can
+      # build fully offline.  Targets without prefetch-input/ are unaffected.
+      # For RHDS/AIPCC builds (subscription: true), the --rhds flag selects the
+      # downstream lockfiles and the SUBSCRIPTION_* env vars supply the RHEL
+      # credentials for RPM downloads from cdn.redhat.com — secrets never
+      # appear on the command line.
+      - name: "Prefetch hermetic build dependencies"
+        id: prefetch
+        run: |
+          set -Eeuxo pipefail
+          # Derive component dir from Makefile (single source of truth). Works for all
+          # image targets (codeserver, jupyter-*, runtime-*, base-images-*).
+          # Reuse ci/cached-builds Python helpers (same parsing as has_tests.py, make_test.py)
+          COMPONENT_DIR=$(python3 -c "import sys, os; sys.path.insert(0, 'ci/cached-builds'); import gha_pr_changed_files as g; print(g.get_build_directory(os.environ['MAKE_TARGET']))")
+          DOCKERFILE=$(python3 -c "import sys, os; sys.path.insert(0, 'ci/cached-builds'); import gha_pr_changed_files as g; print(g.get_build_dockerfile(os.environ['MAKE_TARGET']))")
+          if [ -z "$COMPONENT_DIR" ]; then
+            echo "Could not derive COMPONENT_DIR from Makefile for target ${{ inputs.target }}" >&2
+            exit 1
+          fi
+          # FLAVOR (cpu/cuda/rocm) must match the Dockerfile suffix so prefetch uses the right pylock.*.toml / requirements.*.txt.
+          # Works for both Dockerfile.<flavor> and Dockerfile.konflux.<flavor> (extract last dot-separated segment).
+          FLAVOR=$(echo "$DOCKERFILE" | sed -n 's/.*\.\([^.]*\)$/\1/p')
+          FLAVOR=${FLAVOR:-cpu}
+          if [ -d "$COMPONENT_DIR/prefetch-input" ] || { grep -q 'prefetch-input/' "$DOCKERFILE" 2>/dev/null && [ -d prefetch-input ]; }; then
+            PREFETCH_ROOT="$COMPONENT_DIR/prefetch-input"
+            if [[ ! -d "$PREFETCH_ROOT" ]]; then
+              PREFETCH_ROOT="prefetch-input"
+            fi
+            echo "Hermetic build detected — prefetching dependencies for $COMPONENT_DIR (prefetch root $PREFETCH_ROOT, flavor=$FLAVOR)"
+            pip3 install --quiet --break-system-packages pyyaml packaging
+            command -v uv &>/dev/null || pip3 install --quiet --break-system-packages uv
+
+            PREFETCH_ARGS="--component-dir $COMPONENT_DIR --flavor $FLAVOR"
+            # AIPCC builds use RHEL-based base images, so prefetch from the rhds
+            # variant to avoid RPM conflicts (e.g. openssl-fips-provider vs
+            # openssl-fips-provider-so).
+            if [ "${{ inputs.subscription }}" = "true" ]; then
+              if [ ! -d "$PREFETCH_ROOT/rhds" ]; then
+                echo "Subscription build requires $PREFETCH_ROOT/rhds" >&2
+                exit 1
+              fi
+              echo "Subscription build with rhds variant detected"
+              PREFETCH_ARGS="$PREFETCH_ARGS --rhds"
+            fi
+
+            scripts/lockfile-generators/prefetch-all.sh $PREFETCH_ARGS
+            if [ -x scripts/lockfile-generators/post-prefetch.sh ]; then
+              scripts/lockfile-generators/post-prefetch.sh --component-dir "$COMPONENT_DIR"
+            fi
+            echo "EXTRA_BUILD_ARGS=" >> "$GITHUB_OUTPUT"
+          else
+            echo "No prefetch-input/ found for $COMPONENT_DIR — skipping"
+          fi
+        env:
+          MAKE_TARGET: ${{ inputs.target }}
+          BUILD_ARCH: ${{ inputs.platform }}
+          SUBSCRIPTION_ORG: ${{ secrets.SUBSCRIPTION_ORG }}
+          SUBSCRIPTION_ACTIVATION_KEY: ${{ secrets.SUBSCRIPTION_ACTIVATION_KEY }}
+
+      # Single place we install from uv.lock (dev deps include structlog for scripts/sandbox.py).
+      # Make and later pytest steps all use this venv.
+      - name: Setup uv and Python
+        uses: ./.github/actions/setup-uv
+
+      - name: Install from uv.lock (project + dev deps)
+        run: uv sync --group dev --locked
+
+      - name: "Build: make ${{ inputs.target }}"
+        id: make-target
+        run: |
+          # Print disk and memory stats every 30s so OOM/disk-full failures
+          # leave a breadcrumb trail in the logs.
+          (while true; do
+            echo "=== $(date -u '+%H:%M:%S') ==="
+            df -h / /mnt "${HOME}/.local/share/containers" 2>/dev/null || df -h
+            free -h
+            sleep 30
+          done) &
+
+          uv run make ${{ inputs.target }}
+        env:
+          IMAGE_TAG: "${{ steps.calculated_vars.outputs.IMAGE_TAG }}"
+          CONTAINER_BUILD_CACHE_ARGS: "${{ steps.extra-container-build-args.outputs.CONTAINER_BUILD_CACHE_ARGS }} ${{ steps.prefetch.outputs.EXTRA_BUILD_ARGS }}"
+          # We don't have access to image registry for PRs, so disable pushing
+          PUSH_IMAGES: "${{ (fromJson(inputs.github).event_name == 'pull_request' || fromJson(inputs.github).event_name == 'pull_request_target') && 'no' || 'yes' }}"
+          KONFLUX: "${{ inputs.konflux && 'yes' || 'no' }}"
+
+      - name: "Show podman images information"
+        run: podman images --digests
+
+      # endregion
+
+      # region Pytest image tests
+
+      - name: Run Testcontainers container tests (in PyTest)
+        id: pytest-testcontainers
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' }}
+        env:
+          DOCKER_HOST: "unix:///var/run/podman/podman.sock"
+          TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: "/var/run/podman/podman.sock"
+          # pulling the Ryuk container from docker.io introduces CI flakiness
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          OUTPUT_IMAGE: "${{ steps.calculated_vars.outputs.OUTPUT_IMAGE }}"
+          JUNIT_XML: "${{ runner.temp }}/pytest-reports/${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_testcontainers-junit.xml"
+        run: |
+          set -Eeuxo pipefail
+          mkdir -p "$(dirname "${JUNIT_XML}")"
+          uv run pytest --capture=fd tests/containers -m 'not openshift and not cuda and not rocm and not manifest_validation' --image="${OUTPUT_IMAGE}" --junitxml="${JUNIT_XML}"
+
+      - name: Upload Testcontainers pytest JUnit XML
+        if: ${{ always() && steps.pytest-testcontainers.conclusion != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          path: "${{ runner.temp }}/pytest-reports/${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_testcontainers-junit.xml"
+          archive: false
+          retention-days: 14
+          if-no-files-found: warn
+
+      # endregion Pytest image tests
+
+      # region Makefile image tests
+
+      - name: "Check if we have tests or not"
+        id: have-tests
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' }}
+        run: "ci/cached-builds/has_tests.py --target ${{ inputs.target }}"
+
+      - name: "Change pull policy to IfNotPresent"
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' }}
+        run: |
+          set -Eeuxo pipefail
+
+          find . \( -name "statefulset.yaml" -o -name "pod.yaml" \) -type f -exec \
+            sed -i'' 's/imagePullPolicy: Always/imagePullPolicy: IfNotPresent/g' {} \;
+          git diff
+
+      # [INFO] Running command (('make deploy9-runtimes-rocm-tensorflow-ubi9-python-3.11',), {'shell': True})
+      # Deploying notebook from runtimes/rocm/tensorflow/ubi9-python-3.11/kustomize/base directory...
+      # sed: can't read runtimes/rocm/tensorflow/ubi9-python-3.11/kustomize/base/kustomization.yaml: No such file or directory
+      - name: "Fixup paths that prevent us from running rocm tests"
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' && steps.have-tests.outputs.tests == 'true' }}
+        run: |
+          set -Eeuxo pipefail
+
+          mkdir -p runtimes/rocm
+          ln -s ../rocm-tensorflow runtimes/rocm/tensorflow
+          ln -s ../rocm-pytorch runtimes/rocm/pytorch
+
+      - name: Provision K8s cluster
+        id: provision-k8s
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' && steps.have-tests.outputs.tests == 'true' }}
+        uses: ./.github/actions/provision-k8s
+
+      - name: "Run image tests"
+        id: makefile-tests
+        # skip on s390x because we are unable to install requirements-elyra.txt that's installed by runtime image tests
+        # ci/requirements-elyra.txt (synced from opendatahub-io/elyra etc/generic/requirements-elyra.txt)
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' && steps.provision-k8s.outcome == 'success' && !contains(fromJSON('["linux/s390x"]'), inputs.platform) }}
+        run: python3 ci/cached-builds/make_test.py --target ${{ inputs.target }}
+        env:
+          IMAGE_TAG: "${{ steps.calculated_vars.outputs.IMAGE_TAG }}"
+          # for make deploy, mandatory to specify for the more exotic cases
+          NOTEBOOK_TAG: "${{ inputs.target }}-${{ steps.calculated_vars.outputs.IMAGE_TAG }}"
+          KONFLUX: "${{ inputs.konflux && 'yes' || 'no' }}"
+
+      # endregion
+
+      - name: Run OpenShift container tests (in PyTest)
+        id: pytest-openshift
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' && steps.provision-k8s.outcome == 'success' && steps.have-tests.outputs.tests == 'true' }}
+        env:
+          # TODO(jdanek): this Testcontainers stuff should not be necessary but currently it has to be there
+          DOCKER_HOST: "unix:///var/run/podman/podman.sock"
+          TESTCONTAINERS_DOCKER_SOCKET_OVERRIDE: "/var/run/podman/podman.sock"
+          # pulling the Ryuk container from docker.io introduces CI flakiness
+          TESTCONTAINERS_RYUK_DISABLED: "true"
+          OUTPUT_IMAGE: "${{ steps.calculated_vars.outputs.OUTPUT_IMAGE }}"
+          JUNIT_XML: "${{ runner.temp }}/pytest-reports/${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_openshift-junit.xml"
+        run: |
+          set -Eeuxo pipefail
+          mkdir -p "$(dirname "${JUNIT_XML}")"
+          uv run pytest --capture=fd tests/containers -m 'openshift and not cuda and not rocm' --image="${OUTPUT_IMAGE}" --junitxml="${JUNIT_XML}"
+
+      - name: Upload OpenShift pytest JUnit XML
+        if: ${{ always() && steps.pytest-openshift.conclusion != 'skipped' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          path: "${{ runner.temp }}/pytest-reports/${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_openshift-junit.xml"
+          archive: false
+          retention-days: 14
+          if-no-files-found: warn
+
+      # region Trivy vulnerability scan
+
+      - name: "pull_request|schedule: resolve target if Trivy scan should run"
+        id: resolve-target
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' && (fromJson(inputs.github).event_name == 'pull_request' || fromJson(inputs.github).event_name == 'schedule') }}
+        env:
+          EVENT_NAME: ${{ fromJson(inputs.github).event_name }}
+          HAS_TRIVY_LABEL: ${{ contains(fromJson(inputs.github).event.pull_request.labels.*.name, 'trivy-scan') }}
+          FS_SCAN_FOLDER: ${{ fromJson(env.TRIVY_SCAN_FS_JSON)[inputs.target] }}
+        run: |
+          if [[ "$EVENT_NAME" == "pull_request" && "$HAS_TRIVY_LABEL" == "true" ]]; then
+            if [[ -n "$FS_SCAN_FOLDER" ]]; then
+              TARGET="$FS_SCAN_FOLDER"
+              TYPE="fs"
+            else
+              TARGET="${{ steps.calculated_vars.outputs.OUTPUT_IMAGE }}"
+              TYPE="image"
+            fi
+          elif [[ "$EVENT_NAME" == "schedule" ]]; then
+            if [[ -n "$FS_SCAN_FOLDER" ]]; then
+              TARGET="$FS_SCAN_FOLDER"
+              TYPE="fs"
+            else
+              TARGET="${{ steps.calculated_vars.outputs.OUTPUT_IMAGE }}"
+              TYPE="image"
+            fi
+          fi
+
+          if [[ -n "$TARGET" ]]; then
+            echo "target=$TARGET" >> $GITHUB_OUTPUT
+            echo "type=$TYPE" >> $GITHUB_OUTPUT
+            echo "Trivy scan will run on $TARGET ($TYPE)"
+
+            # opendatahub-io/notebooks uses CentOS Stream which is not supported by Trivy
+            # for OS package scanning. Skip OS packages and only scan language dependencies.
+            # red-hat-data-services/notebooks uses UBI/RHEL which is fully supported.
+            # See: https://github.com/opendatahub-io/notebooks/issues/2848
+            if [[ "${{ github.repository }}" == "opendatahub-io/notebooks" ]]; then
+              echo "pkg-types=library" >> $GITHUB_OUTPUT
+              echo "opendatahub-io/notebooks: skipping OS package scanning (CentOS Stream unsupported by Trivy)"
+            else
+              echo "pkg-types=os,library" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Trivy scan won't run"
+          fi
+
+      - name: Run Trivy vulnerability scanner
+        if: ${{ !cancelled() && steps.resolve-target.outputs.target }}
+        uses: ./.github/actions/trivy-scan-action
+        with:
+          scan-type: ${{ steps.resolve-target.outputs.type }}
+          scan-target: ${{ steps.resolve-target.outputs.target }}
+          trivy-version: ${{ env.TRIVY_VERSION }}
+          podman-socket: /var/run/podman/podman.sock
+          pkg-types: ${{ steps.resolve-target.outputs.pkg-types }}
+
+      # endregion
+
+      # region check-payload for FIPS compliance
+
+      # F0512 15:43:03.219076 21568 main.go:294] Error: exec: "oc": executable file not found in $PATH
+      - name: Install oc client
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' }}
+        run: |
+          # Install the oc client
+          curl -L https://mirror.openshift.com/pub/openshift-v4/$(uname -m)/clients/ocp/stable/openshift-client-linux.tar.gz -o /tmp/openshift-client-linux.tar.gz
+          tar -xzvf /tmp/openshift-client-linux.tar.gz oc
+          rm -f /tmp/openshift-client-linux.tar.gz
+          sudo mv ./oc /usr/local/bin
+
+      # perform `podman image mount` ourselves, and then follow the scenario from
+      # https://github.com/openshift/check-payload/pull/154, that is because
+      # `check-payload scan image --spec` insists on pulling the image, even if already present,
+      #  that causes trouble when checking PRs (image not pushed) and requires `podman login` as root
+      #  (we run podman as root in the GHA to reuse container storage in Kubernetes)
+      # use sudo to avoid
+      #  podman error (args=[image mount ghcr.io/...])
+      #  (stderr=Error: cannot use command "podman image mount" with the remote podman client
+      # and use --preserve-env=PATH to avoid
+      #  F0512 16:31:58.425584    9911 main.go:294] Error: exec: "podman": executable file not found in $PATH
+      - name: Check image with check-payload for FIPS compliance
+        id: fips-check
+        if: ${{ !cancelled() && steps.make-target.outcome == 'success' }}
+        run: |
+          set -Eeuxo pipefail
+          # resolve podman under current user, not under sudo/root
+          PODMAN="$(which podman)"
+          # mount the image
+          IMAGE_MOUNT_DIR=$(sudo "${PODMAN}" image mount "${{ steps.calculated_vars.outputs.OUTPUT_IMAGE }}")
+          # run the check-payload scan
+          sudo --preserve-env=PATH,GOCACHE,GOMODCACHE go tool github.com/openshift/check-payload scan local --path "${IMAGE_MOUNT_DIR}"
+          # unmount the image
+          sudo "${PODMAN}" image unmount --all
+        working-directory: scripts/check-payload
+        env:
+          GOCACHE: /home/runner/.cache/go-build
+          GOMODCACHE: /home/runner/go/pkg/mod
+
+      # endregion
+
+      # region TypeScript (browser) image tests
+
+      # https://playwright.dev/docs/ci
+      # https://playwright.dev/docs/docker
+      # we leave little free disk space after we mount LVM for podman storage
+      # not enough to install playwright; running playwright in podman uses the space we have
+      - name: Run Playwright tests
+        if: ${{ !cancelled() && contains(inputs.target, 'codeserver') && steps.make-target.outcome == 'success' }}
+        uses: ./.github/actions/playwright-test
+        with:
+          test-target: ${{ steps.calculated_vars.outputs.OUTPUT_IMAGE }}
+          podman-socket: /var/run/podman/podman.sock
+          upload-report: ${{ fromJson(inputs.github).event_name == 'pull_request' }}
+          artifact-name: "${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_playwright-report"
+          junit-artifact-file: "${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_playwright-junit.xml"
+          grep-pattern: '@codeserver'
+
+      # endregion
+
+      - run: df -h
+        if: "${{ !cancelled() }}"
+
+      - run: |
+          if mountpoint -q "${HOME}/.local/share/containers"; then
+            sudo compsize -x "${HOME}/.local/share/containers"
+          else
+            echo "Skipping compsize: ${HOME}/.local/share/containers is not a btrfs mountpoint."
+          fi
+        if: "${{ !cancelled() && steps.install-compsize.outcome == 'success' }}"
+
+      # Capture kernel logs on failure (OOM debugging); upload as uncompressed artifacts instead of flooding job logs
+      - name: Capture kernel logs
+        if: "${{ failure() }}"
+        env:
+          LOG_PREFIX: "${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}"
+        run: |
+          set -euo pipefail
+          log_dir="${RUNNER_TEMP}/kernel-logs"
+          mkdir -p "${log_dir}"
+          sudo dmesg > "${log_dir}/${LOG_PREFIX}_dmesg.log"
+          sudo journalctl --no-pager -k > "${log_dir}/${LOG_PREFIX}_journalctl-k.log"
+          echo "Kernel logs captured in ${log_dir}/"
+
+      - name: Upload dmesg log
+        if: "${{ failure() }}"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          path: "${{ runner.temp }}/kernel-logs/${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_dmesg.log"
+          archive: false
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Upload journalctl kernel log
+        if: "${{ failure() }}"
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a  # v7.0.1
+        with:
+          path: "${{ runner.temp }}/kernel-logs/${{ inputs.target }}_${{ steps.calculated_vars.outputs.BUILD_TYPE }}_${{ steps.calculated_vars.outputs.SANITIZED_PLATFORM }}_journalctl-k.log"
+          archive: false
+          retention-days: 14
+          if-no-files-found: error

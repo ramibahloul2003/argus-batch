@@ -1,0 +1,24 @@
+---
+# yamllint disable rule:quoted-strings
+name: Arborist
+
+"on":
+  - create
+  - delete
+
+permissions:
+  contents: write
+
+jobs:
+  arborist:
+    name: Prune dead branches
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: run arborist
+        uses: jhoblitt/arborist-action@v1
+        with:
+          repo-token: "${{ secrets.ARBORIST_GITHUB_TOKEN }}"

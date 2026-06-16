@@ -1,0 +1,77 @@
+---
+name: Check action
+
+'on':
+  push:
+    branches: [main]
+    paths-ignore: ['**.md']
+  pull_request:
+    paths-ignore: ['**.md']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set Node.js 24.x
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.x
+
+      - name: Build dist/
+        run: npm ci && npm run build && npm run package
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  test-failure:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      checks: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - id: metadata
+        uses: ./
+        continue-on-error: true
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file_path: test/fixtures/metadata.incorrect.rb
+          report_checks: false
+          comment_on_pr: false
+
+      - name: Verify action failed
+        if: ${{ steps.metadata.outcome != 'failure' }}
+        run: exit 1
+
+  test-success:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      checks: write
+      pull-requests: write
+      statuses: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+
+      - uses: ./
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          file_path: test/fixtures/metadata-action.rb

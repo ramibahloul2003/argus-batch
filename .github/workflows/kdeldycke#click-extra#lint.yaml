@@ -1,0 +1,27 @@
+---
+name: 🧹 Lint
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - "**/*.gif"
+      - "**/*.jpeg"
+      - "**/*.jpg"
+      - "**/*.png"
+      - "**/*.svg"
+      - "**/*.webp"
+  pull_request:
+    branches-ignore:
+      - major-version-increment
+      - minor-version-increment
+      - prepare-release
+
+jobs:
+
+  lint:
+    uses: kdeldycke/repomatic/.github/workflows/lint.yaml@ea6835e39a5977a617e7d5c0309b9a6fdd2e9386 # v6.24.0
+    secrets:
+      REPOMATIC_PAT: ${{ secrets.REPOMATIC_PAT }}
+      VIRUSTOTAL_API_KEY: ${{ secrets.VIRUSTOTAL_API_KEY }}

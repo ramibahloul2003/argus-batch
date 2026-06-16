@@ -1,0 +1,3603 @@
+---
+name: . Test Machine Learning
+
+'on':
+  workflow_call:
+    inputs:
+      # Workflows
+      workflow:
+        required: true
+        type: boolean
+      # Applications
+      actor-critic-algorithm:
+        required: true
+        type: boolean
+      alpamayo-1:
+        required: true
+        type: boolean
+      amazon-sagemaker-triton-resnet-50-deploy:
+        required: true
+        type: boolean
+      amazon-sagemaker-triton-resnet-50-infer:
+        required: true
+        type: boolean
+      automatic-mixed-precision:
+        required: true
+        type: boolean
+      bert:
+        required: true
+        type: boolean
+      byte-pair-encoding:
+        required: true
+        type: boolean
+      convert-modern-bert-to-core-ml:
+        required: true
+        type: boolean
+      convolutional-neural-network:
+        required: true
+        type: boolean
+      core-ml-tools:
+        required: true
+        type: boolean
+      dense-transformer:
+        required: true
+        type: boolean
+      direct-preference-optimization-low-rank-adaptation:
+        required: true
+        type: boolean
+      feature-store:
+        required: true
+        type: boolean
+      fine-tune-whisper:
+        required: true
+        type: boolean
+      flow-matching:
+        required: true
+        type: boolean
+      gemma:
+        required: true
+        type: boolean
+      graph-neural-network:
+        required: true
+        type: boolean
+      group-relative-policy-optimization-low-rank-adaptation:
+        required: true
+        type: boolean
+      hm-autogluon:
+        required: true
+        type: boolean
+      hm-axolotl:
+        required: true
+        type: boolean
+      hm-catboost:
+        required: true
+        type: boolean
+      hm-crawl4ai:
+        required: true
+        type: boolean
+      hm-cuml:
+        required: true
+        type: boolean
+      hm-deepeval:
+        required: true
+        type: boolean
+      hm-deepspeed:
+        required: true
+        type: boolean
+      hm-diart:
+        required: true
+        type: boolean
+      hm-docling:
+        required: true
+        type: boolean
+      hm-faster-whisper:
+        required: true
+        type: boolean
+      hm-firecrawl:
+        required: true
+        type: boolean
+      hm-flax:
+        required: true
+        type: boolean
+      hm-genesis:
+        required: true
+        type: boolean
+      hm-gliner:
+        required: true
+        type: boolean
+      hm-gradio-classify-image:
+        required: true
+        type: boolean
+      hm-imagebind:
+        required: true
+        type: boolean
+      hm-jiwer:
+        required: true
+        type: boolean
+      hm-kubeflow-calculate:
+        required: true
+        type: boolean
+      hm-kubeflow-classify-mnist:
+        required: true
+        type: boolean
+      hm-langgraph-chat-pdf:
+        required: true
+        type: boolean
+      hm-librosa:
+        required: true
+        type: boolean
+      hm-lightgbm:
+        required: true
+        type: boolean
+      hm-llama-factory:
+        required: true
+        type: boolean
+      hm-llama-index-chat-pdf:
+        required: true
+        type: boolean
+      hm-metaflow-greet:
+        required: true
+        type: boolean
+      hm-mineru:
+        required: true
+        type: boolean
+      hm-mlflow-classify-mnist:
+        required: true
+        type: boolean
+      hm-mlx-lm:
+        required: true
+        type: boolean
+      hm-model2vec:
+        required: true
+        type: boolean
+      hm-nvidia-modulus:
+        required: true
+        type: boolean
+      hm-olmocr:
+        required: true
+        type: boolean
+      hm-openpi:
+        required: true
+        type: boolean
+      hm-optimum:
+        required: true
+        type: boolean
+      hm-optuna:
+        required: true
+        type: boolean
+      hm-hydra-zen:
+        required: true
+        type: boolean
+      hm-pydantic-ai-chat-pdf:
+        required: true
+        type: boolean
+      hm-scikit-learn:
+        required: true
+        type: boolean
+      hm-sglang:
+        required: true
+        type: boolean
+      hm-silero-vad:
+        required: true
+        type: boolean
+      hm-speaches:
+        required: true
+        type: boolean
+      hm-streamlit-live-line-chart:
+        required: true
+        type: boolean
+      hm-streamlit-map:
+        required: true
+        type: boolean
+      hm-swift:
+        required: true
+        type: boolean
+      hm-text-processing-rs:
+        required: true
+        type: boolean
+      hm-tinker:
+        required: true
+        type: boolean
+      hm-torchtune:
+        required: true
+        type: boolean
+      hm-transformers:
+        required: true
+        type: boolean
+      hm-unsloth:
+        required: true
+        type: boolean
+      hm-whisperx:
+        required: true
+        type: boolean
+      hm-xgboost:
+        required: true
+        type: boolean
+      kv-caching:
+        required: true
+        type: boolean
+      liquid-neural-network:
+        required: true
+        type: boolean
+      mamba2:
+        required: true
+        type: boolean
+      mixture-of-experts:
+        required: true
+        type: boolean
+      model-context-protocol:
+        required: true
+        type: boolean
+      modern-bert:
+        required: true
+        type: boolean
+      neo-bert:
+        required: true
+        type: boolean
+      neural-forecasting-forecast-air-passenger-number:
+        required: true
+        type: boolean
+      neural-ordinary-differential-equation:
+        required: true
+        type: boolean
+      nvidia-cosmos:
+        required: true
+        type: boolean
+      nvidia-dali:
+        required: true
+        type: boolean
+      nvidia-nemo:
+        required: true
+        type: boolean
+      qwen3-asr:
+        required: true
+        type: boolean
+      open-clip:
+        required: true
+        type: boolean
+      openvla:
+        required: true
+        type: boolean
+      post-training-quantization:
+        required: true
+        type: boolean
+      proximal-policy-optimization-low-rank-adaptation:
+        required: true
+        type: boolean
+      q-learning:
+        required: true
+        type: boolean
+      qwen-vl:
+        required: true
+        type: boolean
+      qwen3:
+        required: true
+        type: boolean
+      rnnoise-vad:
+        required: true
+        type: boolean
+      speculative-decoding:
+        required: true
+        type: boolean
+      stable-diffusion:
+        required: true
+        type: boolean
+      streaming-sortformer-diarizer:
+        required: true
+        type: boolean
+      supervised-fine-tuning-low-rank-adaptation:
+        required: true
+        type: boolean
+      supervised-fine-tuning-quantized-low-rank-adaptation:
+        required: true
+        type: boolean
+      torchaudio-squim:
+        required: true
+        type: boolean
+      variational-autoencoder:
+        required: true
+        type: boolean
+      vision-language-action-infer:
+        required: true
+        type: boolean
+      vision-language-action-train:
+        required: true
+        type: boolean
+      webrtc-vad:
+        required: true
+        type: boolean
+
+jobs:
+  amazon-sagemaker-triton-resnet-50-deploy-test:
+    name: Amazon SageMaker Triton ResNet 50 (Deploy) | Test
+    if: ${{ inputs.workflow || inputs.amazon-sagemaker-triton-resnet-50-deploy }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/deploy/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/deploy/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/deploy
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/deploy
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/deploy
+
+  amazon-sagemaker-triton-resnet-50-infer-test:
+    name: Amazon SageMaker Triton ResNet 50 (Infer) | Test
+    if: ${{ inputs.workflow || inputs.amazon-sagemaker-triton-resnet-50-infer }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/infer/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/infer/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/infer
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/infer
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/nvidia-triton-inference-server/amazon-sagemaker-triton-resnet-50/infer
+
+  scikit-learn-test:
+    name: scikit-learn | Test
+    if: ${{ inputs.workflow || inputs.hm-scikit-learn }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-scikit-learn/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-scikit-learn/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-scikit-learn
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-scikit-learn
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-scikit-learn
+
+  xgboost-test:
+    name: XGBoost | Test
+    if: ${{ inputs.workflow || inputs.hm-xgboost }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: ensemble-learning/boosting/hm-xgboost/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ensemble-learning/boosting/hm-xgboost/.python-version
+      - name: Install dependencies
+        working-directory: ensemble-learning/boosting/hm-xgboost
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: ensemble-learning/boosting/hm-xgboost
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: ensemble-learning/boosting/hm-xgboost
+
+  lightgbm-test:
+    name: LightGBM | Test
+    if: ${{ inputs.workflow || inputs.hm-lightgbm }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: ensemble-learning/boosting/hm-lightgbm/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ensemble-learning/boosting/hm-lightgbm/.python-version
+      - name: Install dependencies
+        working-directory: ensemble-learning/boosting/hm-lightgbm
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: ensemble-learning/boosting/hm-lightgbm
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: ensemble-learning/boosting/hm-lightgbm
+
+  catboost-test:
+    name: CatBoost | Test
+    if: ${{ inputs.workflow || inputs.hm-catboost }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: ensemble-learning/boosting/hm-catboost/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: ensemble-learning/boosting/hm-catboost/.python-version
+      - name: Install dependencies
+        working-directory: ensemble-learning/boosting/hm-catboost
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: ensemble-learning/boosting/hm-catboost
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: ensemble-learning/boosting/hm-catboost
+
+  cuml-test:
+    name: cuML | Test
+    if: ${{ inputs.workflow || inputs.hm-cuml }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-cuml/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-cuml/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-cuml
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-cuml
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-cuml
+
+  gradio-classify-image-test:
+    name: Gradio (classify-image) | Test
+    if: ${{ inputs.workflow || inputs.hm-gradio-classify-image }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-gradio/applications/classify-image/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-gradio/applications/classify-image/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-gradio/applications/classify-image
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-gradio/applications/classify-image
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-gradio/applications/classify-image
+
+  streamlit-live-line-chart-test:
+    name: Streamlit (live-line-chart) | Test
+    if: ${{ inputs.workflow || inputs.hm-streamlit-live-line-chart }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-streamlit/applications/live-line-chart/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-streamlit/applications/live-line-chart/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-streamlit/applications/live-line-chart
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-streamlit/applications/live-line-chart
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-streamlit/applications/live-line-chart
+
+  streamlit-map-test:
+    name: Streamlit (map) | Test
+    if: ${{ inputs.workflow || inputs.hm-streamlit-map }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-streamlit/applications/map/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-streamlit/applications/map/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-streamlit/applications/map
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-streamlit/applications/map
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-streamlit/applications/map
+
+  flax-test:
+    name: Flax | Test
+    if: ${{ inputs.workflow || inputs.hm-flax }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-flax/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-flax/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-flax
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-flax
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-flax
+
+  autogluon-test:
+    name: AutoGluon | Test
+    if: ${{ inputs.workflow || inputs.hm-autogluon }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-autogluon/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-autogluon/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-autogluon
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-autogluon
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-autogluon
+
+  nvidia-dali-test:
+    name: NVIDIA DALI | Test
+    if: ${{ false }}
+    # if: ${{ inputs.workflow || inputs.nvidia-dali }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/nvidia-dali/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/nvidia-dali/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/nvidia-dali
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/nvidia-dali
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/nvidia-dali
+
+  modulus-test:
+    name: NVIDIA Modulus | Test
+    if: ${{ inputs.workflow || inputs.hm-nvidia-modulus }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-nvidia-modulus/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-nvidia-modulus/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-nvidia-modulus
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-nvidia-modulus
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-nvidia-modulus
+
+  feature-store-test:
+    name: Feature Store | Test
+    if: ${{ inputs.workflow || inputs.feature-store }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/feature-store/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/feature-store/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/feature-store
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/feature-store
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/feature-store
+
+  crawl4ai-test:
+    name: Crawl4AI | Test
+    if: ${{ inputs.workflow || inputs.hm-crawl4ai }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-crawling/hm-crawl4ai/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-crawling/hm-crawl4ai/.python-version
+      - name: Install dependencies
+        working-directory: data-crawling/hm-crawl4ai
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-crawling/hm-crawl4ai
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-crawling/hm-crawl4ai
+
+  firecrawl-test:
+    name: Firecrawl | Test
+    if: ${{ inputs.workflow || inputs.hm-firecrawl }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-crawling/hm-firecrawl/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-crawling/hm-firecrawl/.python-version
+      - name: Install dependencies
+        working-directory: data-crawling/hm-firecrawl
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-crawling/hm-firecrawl
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-crawling/hm-firecrawl
+
+  mineru-test:
+    name: MinerU | Test
+    if: ${{ inputs.workflow || inputs.hm-mineru }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-extraction/hm-mineru/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-extraction/hm-mineru/.python-version
+      - name: Install dependencies
+        working-directory: data-extraction/hm-mineru
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-extraction/hm-mineru
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-extraction/hm-mineru
+
+  olmocr-test:
+    name: olmOCR | Test
+    if: ${{ inputs.workflow || inputs.hm-olmocr }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-extraction/hm-olmocr/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-extraction/hm-olmocr/.python-version
+      - name: Install dependencies
+        working-directory: data-extraction/hm-olmocr
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-extraction/hm-olmocr
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-extraction/hm-olmocr
+
+  docling-test:
+    name: Docling | Test
+    if: ${{ inputs.workflow || inputs.hm-docling }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-extraction/hm-docling/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-extraction/hm-docling/.python-version
+      - name: Install dependencies
+        working-directory: data-extraction/hm-docling
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-extraction/hm-docling
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-extraction/hm-docling
+
+  dense-transformer-test:
+    name: Dense Transformer | Test
+    if: ${{ inputs.workflow || inputs.dense-transformer }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-architecture/dense-transformer/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-architecture/dense-transformer/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-architecture/dense-transformer
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-architecture/dense-transformer
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-architecture/dense-transformer
+
+  mixture-of-experts-test:
+    name: Mixture of Experts | Test
+    if: ${{ inputs.workflow || inputs.mixture-of-experts }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-architecture/mixture-of-experts/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-architecture/mixture-of-experts/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-architecture/mixture-of-experts
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-architecture/mixture-of-experts
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-architecture/mixture-of-experts
+
+  mamba2-test:
+    name: Mamba 2 | Test
+    if: ${{ inputs.workflow || inputs.mamba2 }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: state-space-model/mamba2/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: state-space-model/mamba2/.python-version
+      - name: Install dependencies
+        working-directory: state-space-model/mamba2
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: state-space-model/mamba2
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: state-space-model/mamba2
+
+  deepspeed-test:
+    name: DeepSpeed | Test
+    if: ${{ inputs.workflow || inputs.hm-deepspeed }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-pre-training/training-optimization/hm-deepspeed/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-pre-training/training-optimization/hm-deepspeed/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-pre-training/training-optimization/hm-deepspeed
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-pre-training/training-optimization/hm-deepspeed
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-pre-training/training-optimization/hm-deepspeed
+
+  qwen3-test:
+    name: Qwen3 | Test
+    if: ${{ inputs.workflow || inputs.qwen3 }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-pre-training/training-paradigm/causal-language-model/qwen3/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-pre-training/training-paradigm/causal-language-model/qwen3/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-pre-training/training-paradigm/causal-language-model/qwen3
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-pre-training/training-paradigm/causal-language-model/qwen3
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-pre-training/training-paradigm/causal-language-model/qwen3
+
+  modern-bert-test:
+    name: ModernBERT | Test
+    if: ${{ inputs.workflow || inputs.modern-bert }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-pre-training/training-paradigm/masked-language-model/modern-bert/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-pre-training/training-paradigm/masked-language-model/modern-bert/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-pre-training/training-paradigm/masked-language-model/modern-bert
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-pre-training/training-paradigm/masked-language-model/modern-bert
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-pre-training/training-paradigm/masked-language-model/modern-bert
+
+  neo-bert-test:
+    name: NeoBERT | Test
+    if: ${{ inputs.workflow || inputs.neo-bert }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-pre-training/training-paradigm/masked-language-model/neo-bert/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-pre-training/training-paradigm/masked-language-model/neo-bert/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-pre-training/training-paradigm/masked-language-model/neo-bert
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-pre-training/training-paradigm/masked-language-model/neo-bert
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-pre-training/training-paradigm/masked-language-model/neo-bert
+
+  bert-test:
+    name: BERT | Test
+    if: ${{ inputs.workflow || inputs.bert }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: named-entity-recognition/bert/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: named-entity-recognition/bert/.python-version
+      - name: Install dependencies
+        working-directory: named-entity-recognition/bert
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: named-entity-recognition/bert
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: named-entity-recognition/bert
+
+  gliner-test:
+    name: GLiNER | Test
+    if: ${{ inputs.workflow || inputs.hm-gliner }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: named-entity-recognition/hm-gliner/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: named-entity-recognition/hm-gliner/.python-version
+      - name: Install dependencies
+        working-directory: named-entity-recognition/hm-gliner
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: named-entity-recognition/hm-gliner
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: named-entity-recognition/hm-gliner
+
+  byte-pair-encoding-test:
+    name: Byte-Pair Encoding | Test
+    if: ${{ inputs.workflow || inputs.byte-pair-encoding }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: tokenization/byte-pair-encoding/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: tokenization/byte-pair-encoding/.python-version
+      - name: Install dependencies
+        working-directory: tokenization/byte-pair-encoding
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: tokenization/byte-pair-encoding
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: tokenization/byte-pair-encoding
+
+  model2vec-test:
+    name: Model2Vec | Test
+    if: ${{ inputs.workflow || inputs.hm-model2vec }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: embedding/hm-model2vec/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: embedding/hm-model2vec/.python-version
+      - name: Install dependencies
+        working-directory: embedding/hm-model2vec
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: embedding/hm-model2vec
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: embedding/hm-model2vec
+
+  automatic-mixed-precision-test:
+    name: Automatic Mixed Precision | Test
+    if: ${{ inputs.workflow || inputs.automatic-mixed-precision }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-pre-training/training-optimization/automatic-mixed-precision/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-pre-training/training-optimization/automatic-mixed-precision/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-pre-training/training-optimization/automatic-mixed-precision
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-pre-training/training-optimization/automatic-mixed-precision
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-pre-training/training-optimization/automatic-mixed-precision
+
+  sglang-test:
+    name: SGLang | Test
+    if: ${{ inputs.workflow || inputs.hm-sglang }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install NVIDIA CUDA Toolkit
+        uses: Jimver/cuda-toolkit@3d45d157f327c09c04b50ee6ccdea2d9d017ec76 # v0.2.35
+        id: cuda-toolkit
+        with:
+          cuda: 12.9.0
+          method: network
+          sub-packages: '["nvcc"]'
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-inference/hm-sglang/hm-sglang/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-inference/hm-sglang/hm-sglang/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-inference/hm-sglang/hm-sglang
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-inference/hm-sglang/hm-sglang
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-inference/hm-sglang/hm-sglang
+
+  mlx-lm-test:
+    name: MLX LM | Test
+    if: ${{ inputs.workflow || inputs.hm-mlx-lm }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-inference/hm-mlx-lm/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-inference/hm-mlx-lm/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-inference/hm-mlx-lm
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-inference/hm-mlx-lm
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-inference/hm-mlx-lm
+
+  kv-caching-test:
+    name: KV Caching | Test
+    if: ${{ inputs.workflow || inputs.kv-caching }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-inference/kv-caching/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-inference/kv-caching/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-inference/kv-caching
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-inference/kv-caching
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-inference/kv-caching
+
+  speculative-decoding-test:
+    name: Speculative Decoding | Test
+    if: ${{ inputs.workflow || inputs.speculative-decoding }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-inference/speculative-decoding/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-inference/speculative-decoding/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-inference/speculative-decoding
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-inference/speculative-decoding
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-inference/speculative-decoding
+
+  gemma-test:
+    name: Gemma | Test
+    if: ${{ inputs.workflow || inputs.gemma }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: small-language-model/gemma/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: small-language-model/gemma/.python-version
+      - name: Install dependencies
+        working-directory: small-language-model/gemma
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: small-language-model/gemma
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: small-language-model/gemma
+
+  hm-transformers-test:
+    name: Transformers | Test
+    if: ${{ inputs.workflow || inputs.hm-transformers }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-inference/hm-transformers/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-inference/hm-transformers/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-inference/hm-transformers
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-inference/hm-transformers
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-inference/hm-transformers
+
+  hm-optimum-test:
+    name: Optimum | Test
+    if: ${{ inputs.workflow || inputs.hm-optimum }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-inference/hm-optimum/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-inference/hm-optimum/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-inference/hm-optimum
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-inference/hm-optimum
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-inference/hm-optimum
+
+  metaflow-greet-test:
+    name: Metaflow (greet) | Test
+    if: ${{ inputs.workflow || inputs.hm-metaflow-greet }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-metaflow/flows/greet/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-metaflow/flows/greet/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-metaflow/flows/greet
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-metaflow/flows/greet
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-metaflow/flows/greet
+
+  kubeflow-calculate-test:
+    name: Kubeflow (calculate) | Test
+    if: ${{ inputs.workflow || inputs.hm-kubeflow-calculate }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-kubeflow/pipelines/calculate/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-kubeflow/pipelines/calculate/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-kubeflow/pipelines/calculate
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-kubeflow/pipelines/calculate
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-kubeflow/pipelines/calculate
+
+  kubeflow-classify-mnist-test:
+    name: Kubeflow (classify-mnist) | Test
+    if: ${{ inputs.workflow || inputs.hm-kubeflow-classify-mnist }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-kubeflow/pipelines/classify-mnist/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-kubeflow/pipelines/classify-mnist/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-kubeflow/pipelines/classify-mnist
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-kubeflow/pipelines/classify-mnist
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-kubeflow/pipelines/classify-mnist
+
+  pydantic-ai-chat-pdf-test:
+    name: PydanticAI (chat-pdf) | Test
+    if: ${{ inputs.workflow || inputs.hm-pydantic-ai-chat-pdf }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-application/hm-pydantic-ai/applications/chat-pdf/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-application/hm-pydantic-ai/applications/chat-pdf/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-application/hm-pydantic-ai/applications/chat-pdf
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-application/hm-pydantic-ai/applications/chat-pdf
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-application/hm-pydantic-ai/applications/chat-pdf
+
+  langgraph-chat-pdf-test:
+    name: LangGraph (chat-pdf) | Test
+    if: ${{ inputs.workflow || inputs.hm-langgraph-chat-pdf }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-application/hm-langgraph/applications/chat-pdf/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-application/hm-langgraph/applications/chat-pdf/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-application/hm-langgraph/applications/chat-pdf
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-application/hm-langgraph/applications/chat-pdf
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-application/hm-langgraph/applications/chat-pdf
+
+  llama-index-chat-pdf-test:
+    name: LlamaIndex (chat-pdf) | Test
+    if: ${{ inputs.workflow || inputs.hm-llama-index-chat-pdf }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-application/hm-llama-index/applications/chat-pdf/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-application/hm-llama-index/applications/chat-pdf/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-application/hm-llama-index/applications/chat-pdf
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-application/hm-llama-index/applications/chat-pdf
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-application/hm-llama-index/applications/chat-pdf
+
+  model-context-protocol-test:
+    name: Model Context Protocol | Test
+    if: ${{ inputs.workflow || inputs.model-context-protocol }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/model-context-protocol/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/model-context-protocol/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/model-context-protocol
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/model-context-protocol
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/model-context-protocol
+
+  mlflow-classify-mnist-test:
+    name: MLflow (classify-mnist) | Test
+    if: ${{ inputs.workflow || inputs.hm-mlflow-classify-mnist }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hm-mlflow/experiments/classify-mnist/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hm-mlflow/experiments/classify-mnist/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hm-mlflow/experiments/classify-mnist
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hm-mlflow/experiments/classify-mnist
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hm-mlflow/experiments/classify-mnist
+
+  neural-forecasting-forecast-air-passenger-number-test:
+    name: Neural Forecasting (forecast-air-passenger-number) | Test
+    if: ${{ inputs.workflow || inputs.neural-forecasting-forecast-air-passenger-number }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/neural-forecasting/forecast-air-passenger-number/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/neural-forecasting/forecast-air-passenger-number/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/neural-forecasting/forecast-air-passenger-number
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/neural-forecasting/forecast-air-passenger-number
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/neural-forecasting/forecast-air-passenger-number
+
+  webrtc-vad-test:
+    name: WebRTC VAD | Test
+    if: ${{ inputs.workflow || inputs.webrtc-vad }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/voice-activity-detection/webrtc-vad/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/voice-activity-detection/webrtc-vad/.python-version
+      - name: Install dependencies
+        working-directory: audio/voice-activity-detection/webrtc-vad
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/voice-activity-detection/webrtc-vad
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/voice-activity-detection/webrtc-vad
+
+  rnnoise-vad-test:
+    name: RNNoise VAD | Test
+    if: ${{ inputs.workflow || inputs.rnnoise-vad }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/voice-activity-detection/rnnoise-vad/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/voice-activity-detection/rnnoise-vad/.python-version
+      - name: Install dependencies
+        working-directory: audio/voice-activity-detection/rnnoise-vad
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/voice-activity-detection/rnnoise-vad
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/voice-activity-detection/rnnoise-vad
+
+  silero-vad-test:
+    name: Silero VAD | Test
+    if: ${{ inputs.workflow || inputs.hm-silero-vad }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/voice-activity-detection/hm-silero-vad/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/voice-activity-detection/hm-silero-vad/.python-version
+      - name: Install dependencies
+        working-directory: audio/voice-activity-detection/hm-silero-vad
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/voice-activity-detection/hm-silero-vad
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/voice-activity-detection/hm-silero-vad
+
+  diart-test:
+    name: Diart | Test
+    if: ${{ inputs.workflow || inputs.hm-diart }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/speaker-diarization/hm-diart/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/speaker-diarization/hm-diart/.python-version
+      - name: Install dependencies
+        working-directory: audio/speaker-diarization/hm-diart
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/speaker-diarization/hm-diart
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/speaker-diarization/hm-diart
+
+  streaming-sortformer-diarizer-test:
+    name: Streaming Sortformer Diarizer | Test
+    if: ${{ inputs.workflow || inputs.streaming-sortformer-diarizer }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/speaker-diarization/streaming-sortformer-diarizer/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/speaker-diarization/streaming-sortformer-diarizer/.python-version
+      - name: Install dependencies
+        working-directory: audio/speaker-diarization/streaming-sortformer-diarizer
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/speaker-diarization/streaming-sortformer-diarizer
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/speaker-diarization/streaming-sortformer-diarizer
+
+  librosa-test:
+    name: Librosa | Test
+    if: ${{ inputs.workflow || inputs.hm-librosa }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/audio-signal-analysis/hm-librosa/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/audio-signal-analysis/hm-librosa/.python-version
+      - name: Install dependencies
+        working-directory: audio/audio-signal-analysis/hm-librosa
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/audio-signal-analysis/hm-librosa
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/audio-signal-analysis/hm-librosa
+
+  torchaudio-squim-test:
+    name: TorchAudio SQUIM | Test
+    if: ${{ inputs.workflow || inputs.torchaudio-squim }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/speech-quality-assessment/torchaudio-squim/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/speech-quality-assessment/torchaudio-squim/.python-version
+      - name: Install dependencies
+        working-directory: audio/speech-quality-assessment/torchaudio-squim
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/speech-quality-assessment/torchaudio-squim
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/speech-quality-assessment/torchaudio-squim
+
+  faster-whisper-test:
+    name: Faster Whisper | Test
+    if: ${{ inputs.workflow || inputs.hm-faster-whisper }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/automatic-speech-recognition-inference/hm-faster-whisper/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/automatic-speech-recognition-inference/hm-faster-whisper/.python-version
+      - name: Install dependencies
+        working-directory: audio/automatic-speech-recognition-inference/hm-faster-whisper
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/automatic-speech-recognition-inference/hm-faster-whisper
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/automatic-speech-recognition-inference/hm-faster-whisper
+
+  whisperx-test:
+    name: WhisperX | Test
+    if: ${{ inputs.workflow || inputs.hm-whisperx }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/automatic-speech-recognition-inference/hm-whisperx/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/automatic-speech-recognition-inference/hm-whisperx/.python-version
+      - name: Install dependencies
+        working-directory: audio/automatic-speech-recognition-inference/hm-whisperx
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/automatic-speech-recognition-inference/hm-whisperx
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/automatic-speech-recognition-inference/hm-whisperx
+
+  speaches-test:
+    name: Speaches | Test
+    if: ${{ inputs.workflow || inputs.hm-speaches }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/automatic-speech-recognition-inference/hm-speaches/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/automatic-speech-recognition-inference/hm-speaches/.python-version
+      - name: Install dependencies
+        working-directory: audio/automatic-speech-recognition-inference/hm-speaches
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/automatic-speech-recognition-inference/hm-speaches
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/automatic-speech-recognition-inference/hm-speaches
+
+  nvidia-nemo-test:
+    name: NVIDIA NeMo | Test
+    if: ${{ inputs.workflow || inputs.nvidia-nemo }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/automatic-speech-recognition-inference/nvidia-nemo/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/automatic-speech-recognition-inference/nvidia-nemo/.python-version
+      - name: Install dependencies
+        working-directory: audio/automatic-speech-recognition-inference/nvidia-nemo
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/automatic-speech-recognition-inference/nvidia-nemo
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/automatic-speech-recognition-inference/nvidia-nemo
+
+  qwen3-asr-test:
+    name: Qwen3-ASR | Test
+    if: ${{ inputs.workflow || inputs.qwen3-asr }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/automatic-speech-recognition-inference/qwen3-asr/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/automatic-speech-recognition-inference/qwen3-asr/.python-version
+      - name: Install dependencies
+        working-directory: audio/automatic-speech-recognition-inference/qwen3-asr
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/automatic-speech-recognition-inference/qwen3-asr
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/automatic-speech-recognition-inference/qwen3-asr
+
+  jiwer-test:
+    name: JiWER | Test
+    if: ${{ inputs.workflow || inputs.hm-jiwer }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: audio/automatic-speech-recognition-evaluation/hm-jiwer/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: audio/automatic-speech-recognition-evaluation/hm-jiwer/.python-version
+      - name: Install dependencies
+        working-directory: audio/automatic-speech-recognition-evaluation/hm-jiwer
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: audio/automatic-speech-recognition-evaluation/hm-jiwer
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: audio/automatic-speech-recognition-evaluation/hm-jiwer
+
+  stable-diffusion-test:
+    name: Stable Diffusion | Test
+    if: ${{ inputs.workflow || inputs.stable-diffusion }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: generative-model/stable-diffusion/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: generative-model/stable-diffusion/.python-version
+      - name: Install dependencies
+        working-directory: generative-model/stable-diffusion
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: generative-model/stable-diffusion
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: generative-model/stable-diffusion
+
+  variational-autoencoder-test:
+    name: Variational Autoencoder | Test
+    if: ${{ inputs.workflow || inputs.variational-autoencoder }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: generative-model/variational-autoencoder/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: generative-model/variational-autoencoder/.python-version
+      - name: Install dependencies
+        working-directory: generative-model/variational-autoencoder
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: generative-model/variational-autoencoder
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: generative-model/variational-autoencoder
+
+  neural-ordinary-differential-equation-test:
+    name: Neural Ordinary Differential Equation | Test
+    if: ${{ inputs.workflow || inputs.neural-ordinary-differential-equation }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: generative-model/neural-ordinary-differential-equation/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: generative-model/neural-ordinary-differential-equation/.python-version
+      - name: Install dependencies
+        working-directory: generative-model/neural-ordinary-differential-equation
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: generative-model/neural-ordinary-differential-equation
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: generative-model/neural-ordinary-differential-equation
+
+  flow-matching-test:
+    name: Flow Matching | Test
+    if: ${{ inputs.workflow || inputs.flow-matching }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: generative-model/flow-matching/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: generative-model/flow-matching/.python-version
+      - name: Install dependencies
+        working-directory: generative-model/flow-matching
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: generative-model/flow-matching
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: generative-model/flow-matching
+
+  hydra-zen-test:
+    name: hydra-zen | Test
+    if: ${{ inputs.workflow || inputs.hm-hydra-zen }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/configuration-management/hm-hydra-zen/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/configuration-management/hm-hydra-zen/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/configuration-management/hm-hydra-zen
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/configuration-management/hm-hydra-zen
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/configuration-management/hm-hydra-zen
+
+  optuna-test:
+    name: Optuna | Test
+    if: ${{ inputs.workflow || inputs.hm-optuna }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/hyperparameter-optimization/hm-optuna/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/hyperparameter-optimization/hm-optuna/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/hyperparameter-optimization/hm-optuna
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/hyperparameter-optimization/hm-optuna
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/hyperparameter-optimization/hm-optuna
+
+  post-training-quantization-test:
+    name: Post-Training Quantization | Test
+    if: ${{ inputs.workflow || inputs.post-training-quantization }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/post-training-quantization/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/post-training-quantization/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/post-training-quantization
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/post-training-quantization
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/post-training-quantization
+
+  unsloth-test:
+    name: Unsloth | Test
+    if: ${{ inputs.workflow || inputs.hm-unsloth }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/hm-unsloth/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/hm-unsloth/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/hm-unsloth
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/hm-unsloth
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/hm-unsloth
+
+  torchtune-test:
+    name: torchtune | Test
+    if: ${{ inputs.workflow || inputs.hm-torchtune }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/hm-torchtune/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/hm-torchtune/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/hm-torchtune
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/hm-torchtune
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/hm-torchtune
+
+  axolotl-test:
+    name: Axolotl | Test
+    if: ${{ inputs.workflow || inputs.hm-axolotl }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/hm-axolotl/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/hm-axolotl/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/hm-axolotl
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/hm-axolotl
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/hm-axolotl
+
+  llama-factory-test:
+    name: LLaMA-Factory | Test
+    if: ${{ inputs.workflow || inputs.hm-llama-factory }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/hm-llama-factory/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/hm-llama-factory/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/hm-llama-factory
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/hm-llama-factory
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/hm-llama-factory
+
+  swift-test:
+    name: SWIFT | Test
+    if: ${{ inputs.workflow || inputs.hm-swift }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/hm-swift/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/hm-swift/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/hm-swift
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/hm-swift
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/hm-swift
+
+  text-processing-rs-test:
+    name: text-processing-rs | Test
+    if: ${{ inputs.workflow || inputs.hm-text-processing-rs }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@46268bd060767258de96ed93c1251119784f2ab6 # v1.16.1
+        with:
+          cache: true
+          rust-src-dir: audio/inverse-text-normalization/hm-text-processing-rs
+      - name: Install dependencies
+        working-directory: audio/inverse-text-normalization/hm-text-processing-rs
+        run: |
+          cargo build --locked
+      - name: Test
+        working-directory: audio/inverse-text-normalization/hm-text-processing-rs
+        run: |
+          cargo test --all-features
+
+  tinker-test:
+    name: Tinker | Test
+    if: ${{ inputs.workflow || inputs.hm-tinker }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/hm-tinker/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/hm-tinker/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/hm-tinker
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/hm-tinker
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/hm-tinker
+
+  supervised-fine-tuning-low-rank-adaptation-test:
+    name: Supervised Fine-Tuning - Low-Rank Adaptation | Test
+    if: ${{ inputs.workflow || inputs.supervised-fine-tuning-low-rank-adaptation }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/supervised-fine-tuning/low-rank-adaptation/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/supervised-fine-tuning/low-rank-adaptation/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/supervised-fine-tuning/low-rank-adaptation
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/supervised-fine-tuning/low-rank-adaptation
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/supervised-fine-tuning/low-rank-adaptation
+
+  supervised-fine-tuning-quantized-low-rank-adaptation-test:
+    name: Supervised Fine-Tuning - Quantized Low-Rank Adaptation | Test
+    if: ${{ inputs.workflow || inputs.supervised-fine-tuning-quantized-low-rank-adaptation }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/supervised-fine-tuning/quantized-low-rank-adaptation/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/supervised-fine-tuning/quantized-low-rank-adaptation/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/supervised-fine-tuning/quantized-low-rank-adaptation
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/supervised-fine-tuning/quantized-low-rank-adaptation
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/supervised-fine-tuning/quantized-low-rank-adaptation
+
+  direct-preference-optimization-low-rank-adaptation-test:
+    name: Direct Preference Optimization - Low-Rank Adaptation | Test
+    if: ${{ inputs.workflow || inputs.direct-preference-optimization-low-rank-adaptation }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/direct-preference-optimization/low-rank-adaptation/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/direct-preference-optimization/low-rank-adaptation/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/direct-preference-optimization/low-rank-adaptation
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/direct-preference-optimization/low-rank-adaptation
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/direct-preference-optimization/low-rank-adaptation
+
+  proximal-policy-optimization-low-rank-adaptation-test:
+    name: Proximal Policy Optimization - Low-Rank Adaptation | Test
+    if: ${{ inputs.workflow || inputs.proximal-policy-optimization-low-rank-adaptation }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/proximal-policy-optimization/low-rank-adaptation/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/proximal-policy-optimization/low-rank-adaptation/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/proximal-policy-optimization/low-rank-adaptation
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/proximal-policy-optimization/low-rank-adaptation
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/proximal-policy-optimization/low-rank-adaptation
+
+  group-relative-policy-optimization-low-rank-adaptation-test:
+    name: Group Relative Policy Optimization - Low-Rank Adaptation | Test
+    if: ${{ inputs.workflow || inputs.group-relative-policy-optimization-low-rank-adaptation }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/group-relative-policy-optimization/low-rank-adaptation/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/group-relative-policy-optimization/low-rank-adaptation/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/group-relative-policy-optimization/low-rank-adaptation
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/group-relative-policy-optimization/low-rank-adaptation
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/group-relative-policy-optimization/low-rank-adaptation
+
+  fine-tune-whisper-test:
+    name: Fine Tune Whisper | Test
+    if: ${{ inputs.workflow || inputs.fine-tune-whisper }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-post-training/fine-tuning/fine-tune-whisper/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-post-training/fine-tuning/fine-tune-whisper/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-post-training/fine-tuning/fine-tune-whisper
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-post-training/fine-tuning/fine-tune-whisper
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-post-training/fine-tuning/fine-tune-whisper
+
+  core-ml-tools-test:
+    name: Core ML Tools | Test
+    if: ${{ inputs.workflow || inputs.core-ml-tools }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: machine-learning/core-ml-tools/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: machine-learning/core-ml-tools/.python-version
+      - name: Install dependencies
+        working-directory: machine-learning/core-ml-tools
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: machine-learning/core-ml-tools
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: machine-learning/core-ml-tools
+
+  convert-modern-bert-to-core-ml-test:
+    name: Convert ModernBERT to Core ML | Test
+    if: ${{ inputs.workflow || inputs.convert-modern-bert-to-core-ml }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-pre-training/training-paradigm/masked-language-model/convert-modern-bert-to-core-ml/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-pre-training/training-paradigm/masked-language-model/convert-modern-bert-to-core-ml/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-pre-training/training-paradigm/masked-language-model/convert-modern-bert-to-core-ml
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-pre-training/training-paradigm/masked-language-model/convert-modern-bert-to-core-ml
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-pre-training/training-paradigm/masked-language-model/convert-modern-bert-to-core-ml
+
+  deepeval-test:
+    name: DeepEval | Test
+    # if: ${{ inputs.workflow || inputs.hm-deepeval }}
+    if: ${{ false }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: large-language-model-evaluation/hm-deepeval/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: large-language-model-evaluation/hm-deepeval/.python-version
+      - name: Install dependencies
+        working-directory: large-language-model-evaluation/hm-deepeval
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: large-language-model-evaluation/hm-deepeval
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: large-language-model-evaluation/hm-deepeval
+
+  qwen-vl-test:
+    name: Qwen VL | Test
+    if: ${{ inputs.workflow || inputs.qwen-vl }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: vision-language-model/qwen-vl/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: vision-language-model/qwen-vl/.python-version
+      - name: Install dependencies
+        working-directory: vision-language-model/qwen-vl
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: vision-language-model/qwen-vl
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: vision-language-model/qwen-vl
+
+  vision-language-action-train-test:
+    name: Vision-Language-Action (Train) | Test
+    if: ${{ inputs.workflow || inputs.vision-language-action-train }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: multimodal-model/vision-language-action-model/vision-language-action/train/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: multimodal-model/vision-language-action-model/vision-language-action/train/.python-version
+      - name: Install dependencies
+        working-directory: multimodal-model/vision-language-action-model/vision-language-action/train
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: multimodal-model/vision-language-action-model/vision-language-action/train
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: multimodal-model/vision-language-action-model/vision-language-action/train
+
+  vision-language-action-infer-test:
+    name: Vision-Language-Action (Infer) | Test
+    if: ${{ inputs.workflow || inputs.vision-language-action-infer }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: multimodal-model/vision-language-action-model/vision-language-action/infer/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: multimodal-model/vision-language-action-model/vision-language-action/infer/.python-version
+      - name: Install dependencies
+        working-directory: multimodal-model/vision-language-action-model/vision-language-action/infer
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: multimodal-model/vision-language-action-model/vision-language-action/infer
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: multimodal-model/vision-language-action-model/vision-language-action/infer
+
+  genesis-test:
+    name: Genesis | Test
+    if: ${{ inputs.workflow || inputs.hm-genesis }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: physics/hm-genesis/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: physics/hm-genesis/.python-version
+      - name: Install dependencies
+        working-directory: physics/hm-genesis
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: physics/hm-genesis
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: physics/hm-genesis
+
+  convolutional-neural-network-test:
+    name: Convolutional Neural Network | Test
+    if: ${{ inputs.workflow || inputs.convolutional-neural-network }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: convolutional-neural-network/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: convolutional-neural-network/.python-version
+      - name: Install dependencies
+        working-directory: convolutional-neural-network
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: convolutional-neural-network
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: convolutional-neural-network
+
+  graph-neural-network-test:
+    name: Graph Neural Network | Test
+    if: ${{ inputs.workflow || inputs.graph-neural-network }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: graph-neural-network/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: graph-neural-network/.python-version
+      - name: Install dependencies
+        working-directory: graph-neural-network
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: graph-neural-network
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: graph-neural-network
+
+  graph-neural-network-train:
+    name: Graph Neural Network | Train
+    if: ${{ inputs.workflow || inputs.graph-neural-network }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: graph-neural-network/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: graph-neural-network/.python-version
+      - name: Install dependencies
+        working-directory: graph-neural-network
+        run: |
+          uv sync --dev
+      - name: Train model
+        working-directory: graph-neural-network
+        env:
+          WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+        run: |
+          uv run poe dev --dataset=ogbg-molhiv --gnn=gcn --feature=simple --epochs=2
+
+  liquid-neural-network-test:
+    name: Liquid Neural Network | Test
+    if: ${{ inputs.workflow || inputs.liquid-neural-network }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: liquid-neural-network/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: liquid-neural-network/.python-version
+      - name: Install dependencies
+        working-directory: liquid-neural-network
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: liquid-neural-network
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: liquid-neural-network
+
+  open-clip-test:
+    name: OpenCLIP | Test
+    if: ${{ inputs.workflow || inputs.open-clip }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: embedding/open-clip/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: embedding/open-clip/.python-version
+      - name: Install dependencies
+        working-directory: embedding/open-clip
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: embedding/open-clip
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: embedding/open-clip
+
+  imagebind-test:
+    name: ImageBind | Test
+    if: ${{ inputs.workflow || inputs.hm-imagebind }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: embedding/hm-imagebind/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: embedding/hm-imagebind/.python-version
+      - name: Install dependencies
+        working-directory: embedding/hm-imagebind
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: embedding/hm-imagebind
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: embedding/hm-imagebind
+
+  openvla-test:
+    name: OpenVLA | Test
+    if: ${{ inputs.workflow || inputs.openvla }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: multimodal-model/vision-language-action-model/openvla/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: multimodal-model/vision-language-action-model/openvla/.python-version
+      - name: Install dependencies
+        working-directory: multimodal-model/vision-language-action-model/openvla
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: multimodal-model/vision-language-action-model/openvla
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: multimodal-model/vision-language-action-model/openvla
+
+  openpi-test:
+    name: openpi | Test
+    if: ${{ inputs.workflow || inputs.hm-openpi }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: multimodal-model/vision-language-action-model/hm-openpi/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: multimodal-model/vision-language-action-model/hm-openpi/.python-version
+      - name: Install dependencies
+        working-directory: multimodal-model/vision-language-action-model/hm-openpi
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: multimodal-model/vision-language-action-model/hm-openpi
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: multimodal-model/vision-language-action-model/hm-openpi
+
+  alpamayo-1-test:
+    name: Alpamayo 1 | Test
+    if: ${{ inputs.workflow || inputs.alpamayo-1 }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: multimodal-model/vision-language-action-model/alpamayo-1/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: multimodal-model/vision-language-action-model/alpamayo-1/.python-version
+      - name: Install dependencies
+        working-directory: multimodal-model/vision-language-action-model/alpamayo-1
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: multimodal-model/vision-language-action-model/alpamayo-1
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: multimodal-model/vision-language-action-model/alpamayo-1
+
+  q-learning-test:
+    name: Q-Learning | Test
+    if: ${{ inputs.workflow || inputs.q-learning }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: reinforcement-learning/q-learning/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: reinforcement-learning/q-learning/.python-version
+      - name: Install dependencies
+        working-directory: reinforcement-learning/q-learning
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: reinforcement-learning/q-learning
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: reinforcement-learning/q-learning
+
+  actor-critic-algorithm-test:
+    name: Actor-Critic Algorithm | Test
+    if: ${{ inputs.workflow || inputs.actor-critic-algorithm }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: reinforcement-learning/actor-critic-algorithm/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: reinforcement-learning/actor-critic-algorithm/.python-version
+      - name: Install dependencies
+        working-directory: reinforcement-learning/actor-critic-algorithm
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: reinforcement-learning/actor-critic-algorithm
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: reinforcement-learning/actor-critic-algorithm
+
+  nvidia-cosmos-test:
+    name: Nvidia Cosmos | Test
+    if: ${{ inputs.workflow || inputs.nvidia-cosmos }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: world-foundation-model/nvidia-cosmos/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: world-foundation-model/nvidia-cosmos/.python-version
+      - name: Install dependencies
+        working-directory: world-foundation-model/nvidia-cosmos
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: world-foundation-model/nvidia-cosmos
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: world-foundation-model/nvidia-cosmos

@@ -1,0 +1,24 @@
+name: MAIN/Push - Deploy to Firebase Hosting
+'on':
+  push:
+    branches:
+      - main
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          touch .env
+          echo "NEXT_PUBLIC_REDIRECT_URL=${{ secrets.NEXT_PUBLIC_REDIRECT_URL }}" >> .env
+          echo "NEXT_PUBLIC_FE_URL=${{ secrets.NEXT_PUBLIC_FE_URL }}" >> .env
+          echo "NEXT_PUBLIC_SERVER_URL=${{ secrets.NEXT_PUBLIC_SERVER_URL }}" >> .env
+          cat .env
+      - run: yarn install && yarn run build:prd && yarn run gen-firebase-rewrites
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_PINGPONG }}'
+          channelId: live
+          projectId: pingpong-697ec
+          target: main

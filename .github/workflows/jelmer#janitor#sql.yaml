@@ -1,0 +1,38 @@
+---
+name: SQL - Check database
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+  schedule:
+    - cron: '0 6 * * *'  # Daily 6AM UTC build
+
+jobs:
+  build:
+    name: Test SQL
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          set -x
+          sudo apt-get update --yes
+          PSQL_DEB=$( apt-cache search 'postgresql-.*-debversion' \
+                        | awk '{print $1}' \
+                        | tail -n 1 )
+          sudo apt-get satisfy --yes --no-install-recommends \
+            postgresql \
+            ${PSQL_DEB} \
+            postgresql-common
+
+      - name: Load SQL
+        run: |
+          set -x
+          set -o pipefail
+          cat schema/state.sql schema/debian/debian.sql \
+            | pg_virtualenv psql -v ON_ERROR_STOP=1

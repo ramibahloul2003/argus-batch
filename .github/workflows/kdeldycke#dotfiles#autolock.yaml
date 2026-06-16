@@ -1,0 +1,11 @@
+---
+name: 🔒 Autolock
+"on":
+  workflow_dispatch:
+  schedule:
+    - cron: "43 0 * * 1"
+
+jobs:
+
+  autolock:
+    uses: kdeldycke/repomatic/.github/workflows/autolock.yaml@ea6835e39a5977a617e7d5c0309b9a6fdd2e9386 # v6.24.0

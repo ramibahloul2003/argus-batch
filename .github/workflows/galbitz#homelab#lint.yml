@@ -1,0 +1,26 @@
+---
+name: Lint
+"on":
+  push:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    env:
+      MISE_SOPS_STRICT: "false"
+
+    steps:
+      - name: Check out the codebase.
+        uses: actions/checkout@v6
+
+      - name: Install mise
+        uses: jdx/mise-action@v4
+        with:
+          cache: true
+
+      - name: Install playbook requirements
+        run: mise run ansible:install-requirements
+
+      - name: Lint
+        run: mise run ansible:lint

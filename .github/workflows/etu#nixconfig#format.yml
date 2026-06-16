@@ -1,0 +1,32 @@
+---
+name: 'Format 🔎'
+
+'on':
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}-format
+  cancel-in-progress: true
+
+jobs:
+  format:
+    name: Format 🔎
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: DeterminateSystems/nix-installer-action@v22
+        with:
+          nix-package-url: https://releases.nixos.org/nix/nix-2.31.3/nix-2.31.3-x86_64-linux.tar.xz
+      - uses: DeterminateSystems/flake-checker-action@v12
+
+      - name: Print nix version ❄️
+        run: 'nix --version'
+      - name: 'Check nix file formatting ❄️'
+        run: 'nix fmt . -- --ci'
+      - name: Check yaml file formatting 📂
+        run: 'nix run nixpkgs#yamllint -- --strict --format github .'
+      - name: Check deadnix file formatting ❄️
+        run: 'nix run nixpkgs#deadnix -- --fail hosts/ modules/ packages/'
+      - name: Check statix file formatting ❄️
+        run: 'nix run nixpkgs#statix -- check --config .statix.toml'

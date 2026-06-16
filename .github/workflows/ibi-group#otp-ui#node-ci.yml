@@ -1,0 +1,75 @@
+jobs:
+  test-build-release:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 10
+      # OIDC tokens are supported from npm 11.5.1 (Node >= 24),
+      # see https://github.com/semantic-release/npm/issues/1054#issuecomment-3723415001
+      - name: Use Node.js 24.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.x
+          cache: "pnpm"
+          registry-url: 'https://registry.npmjs.org'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Lint code
+        run: pnpm run lint:js
+      - name: Lint styles
+        run: pnpm run lint:styles
+      - name: Build packages
+        run: pnpm run build:cjs && pnpm run build:esm
+      - name: i18n check (en-US, fr only)
+        run: pnpm run check:i18n-en-fr
+      - name: Type check
+        run: pnpm run typescript
+      - name: Run unit tests
+        run: pnpm run unit
+      - name: Build Storybook
+        run: pnpm run build-storybook --quiet
+      - name: Install Playwright
+        run: pnpm exec playwright install --with-deps
+      - name: Serve Storybook and run snapshot and a11y tests
+        # We have to run the snapshot and a11y tests together
+        # Because Jest will fail if there are obsolete snapshots
+        # And you would get obsolete snapshots from running the a11y tests alone
+        # env: 
+        #   ONLY_RUN: SNAPSHOTS
+        run: |
+          npx concurrently -k -s first -n "SB,TEST" -c "magenta,blue" \
+            "npx http-server storybook-static --port 5555 --silent" \
+            "npx wait-on tcp:5555 && pnpm run test-storybook --ci"
+      # - name: Serve Storybook and run a11y tests
+      #   env: 
+      #     ONLY_RUN: A11Y
+      #   run: |
+      #     npx concurrently -k -s first -n "SB,TEST" -c "magenta,blue" \
+      #       "npx http-server storybook-static --port 5555 --silent" \
+      #       "npx wait-on tcp:5555 && pnpm run test-storybook --ci"
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        name: Semantic Release
+        run: |
+          echo "@OpenTripPlanner:registry=https://registry.npmjs.org/" >> ~/.npmrc
+          pnpm run semantic-release
+name: Node.js CI
+"on":
+  pull_request: null
+  push:
+    branches:
+      - master
+      - alpha
+      - beta
+      - next
+      - next-major
+      - "[0-9]+.[0-9]+.x"
+      - "[0-9]+.x.x"
+      - "[0-9]+.x"
+permissions:
+  id-token: write # Required for OIDC for generating NPM tokens
+  contents: write # Required to publish a GitHub release and write version numbers in package files.

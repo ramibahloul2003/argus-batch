@@ -1,0 +1,122 @@
+---
+name: Build
+"on":
+  workflow_dispatch: {}
+concurrency:
+  group: "${{ github.head_ref }}"
+  cancel-in-progress: true
+jobs:
+  crate-tests:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - ubuntu-latest
+          - macos-11
+        cachixName:
+          - holochain-ci
+    runs-on: "${{ matrix.platform }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install nix
+        uses: cachix/install-nix-action@v19
+        with:
+          install_url: "https://releases.nixos.org/nix/nix-2.12.0/install"
+      - name: Setup cachix
+        uses: cachix/cachix-action@v12
+        if: "${{ matrix.cachixName != '<YOUR_CACHIX_NAME>' }}"
+        with:
+          name: "${{ matrix.cachixName }}"
+          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      - name: Set NIX_PATH (FIXME)
+        if: "${{ matrix.platform == 'macos-11' }}"
+        run: "echo NIX_PATH=nixpkgs=$(nix eval --impure --raw --expr '(import ./nix/nvfetcher/sources.nix {}).nixpkgs.src') >> $GITHUB_ENV"
+      - name: Run cargo tests
+        run: "nix-shell --pure --run \"cargo test\""
+  holochain-binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - ubuntu-latest
+          - macos-11
+        nixAttribute:
+          - develop
+          - v0_1_0
+          - v0_1_3
+        nurRepo:
+          - holochain-nixpkgs
+        cachixName:
+          - holochain-ci
+    runs-on: "${{ matrix.platform }}"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          lfs: false
+      - name: Install nix
+        uses: cachix/install-nix-action@v19
+        with:
+          install_url: "https://releases.nixos.org/nix/nix-2.12.0/install"
+      - name: Show nixpkgs version
+        run: "nix-instantiate --eval -E '(import (import ./nix/nvfetcher/sources.nix {}).nixpkgs.src {}).lib.version'"
+      - name: Setup cachix
+        uses: cachix/cachix-action@v12
+        if: "${{ matrix.cachixName != '<YOUR_CACHIX_NAME>' }}"
+        with:
+          name: "${{ matrix.cachixName }}"
+          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      - name: Build derivations
+        continue-on-error: "${{ matrix.platform == 'macos-11' }}"
+        env:
+          nix_attribute: "${{ matrix.nixAttribute }}"
+        run: "nix build -L -f . \"packages.holochain.holochainAllBinariesWithDeps.${nix_attribute}\" --extra-experimental-features nix-command"
+  packages:
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          - ubuntu-latest
+          - macos-11
+        nixAttribute:
+          - update-holochain-versions
+          - holochain-nixpkgs-util
+        cachixName:
+          - holochain-ci
+    runs-on: "${{ matrix.platform }}"
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Install nix
+        uses: cachix/install-nix-action@v19
+        with:
+          install_url: "https://releases.nixos.org/nix/nix-2.12.0/install"
+      - name: Show nixpkgs version
+        run: "nix-instantiate --eval -E '(import (import ./nix/nvfetcher/sources.nix {}).nixpkgs.src {}).lib.version'"
+      - name: Setup cachix
+        uses: cachix/cachix-action@v12
+        if: "${{ matrix.cachixName != '<YOUR_CACHIX_NAME>' }}"
+        with:
+          name: "${{ matrix.cachixName }}"
+          signingKey: "${{ secrets.CACHIX_SIGNING_KEY }}"
+          authToken: "${{ secrets.CACHIX_AUTH_TOKEN }}"
+      - name: Build derivations
+        continue-on-error: "${{ matrix.platform == 'macos-11' }}"
+        env:
+          nix_attribute: "${{ matrix.nixAttribute }}"
+        run: "nix build -L -f . \"packages.${nix_attribute}\" --extra-experimental-features nix-command"
+  all-jobs-succeed:
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - crate-tests
+      - holochain-binaries
+      - packages
+    steps:
+      - name: Check status
+        env:
+          RESULTS: "${{ toJSON(needs.*.result) }}"
+        run: "[[ $(jq -n 'env.RESULTS | fromjson | unique == [\"success\"]') == \"true\" ]]\n"

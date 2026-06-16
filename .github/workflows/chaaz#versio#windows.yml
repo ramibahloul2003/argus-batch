@@ -1,0 +1,49 @@
+---
+name: windows
+"on":
+  - workflow_dispatch
+env:
+  RUSTFLAGS: "-D warnings"
+  GITHUB_TOKEN: "${{ secrets.FULL_GITHUB_TOKEN }}"
+  GITHUB_USER: "${{ github.actor }}"
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            root: "."
+            rustflags: "-D warnings"
+            bin_name: versio.exe
+    if: "!contains(github.event.head_commit.message, 'skip ci')"
+    runs-on: "${{ matrix.os }}"
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@v3
+        with:
+          ref: main
+      - name: Get Windows cargo stable
+        if: "matrix.os == 'windows-latest'"
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Get Windows cargo nightly
+        if: "matrix.os == 'windows-latest'"
+        uses: dtolnay/rust-toolchain@nightly
+        with:
+          components: rustfmt
+      - name: Find paths
+        id: cargo-find-paths
+        run: "echo ::set-output name=cargo-lock-glob::\"${{ matrix.root }}\"/**/Cargo.lock"
+      - name: Cache cargo and target
+        uses: actions/cache@v1
+        with:
+          path: "~/.cargo/registry\n~/.cargo/git\n${{ matrix.root }}/target\n"
+          key: "${{ runner.os }}-cargo-${{ hashFiles(steps.cargo-find-paths.outputs.cargo-lock-glob) }}"
+      - name: Build Windows binary
+        if: "matrix.os == 'windows-latest'"
+        run: cargo build --release
+        working-directory: "${{ matrix.root }}"
+        env:
+          RUSTFLAGS: "${{ matrix.rustflags }}"

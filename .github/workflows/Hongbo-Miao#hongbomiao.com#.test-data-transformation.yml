@@ -1,0 +1,48 @@
+---
+name: . Test Data Transformation
+
+'on':
+  workflow_call:
+    inputs:
+      # Workflows
+      workflow:
+        required: true
+        type: boolean
+      # Applications
+      dbt-hm-postgres:
+        required: true
+        type: boolean
+
+jobs:
+  dbt-hm-postgres-test:
+    name: dbt (hm-postgres) | Test
+    if: ${{ inputs.workflow || inputs.dbt-hm-postgres }}
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Install uv
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+        with:
+          version: 0.11.19
+          enable-cache: true
+          cache-dependency-glob: data-transformation/dbt/projects/dbt_hm_postgres/uv.lock
+      - name: Set up Python
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version-file: data-transformation/dbt/projects/dbt_hm_postgres/.python-version
+      - name: Install dependencies
+        working-directory: data-transformation/dbt/projects/dbt_hm_postgres
+        run: |
+          uv sync --dev
+      - name: Test
+        working-directory: data-transformation/dbt/projects/dbt_hm_postgres
+        run: |
+          uv run poe test-coverage
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v7.0.0
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: hongbo-miao/hongbomiao.com
+          directory: data-transformation/dbt/projects/dbt_hm_postgres

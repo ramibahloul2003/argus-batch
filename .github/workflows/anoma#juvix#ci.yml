@@ -1,0 +1,565 @@
+name: Juvix Compiler CI
+"on":
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: the repository ref to build
+        required: true
+        default: main
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - ready_for_review
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.head_ref || github.run_id }}"
+  cancel-in-progress: true
+
+env:
+  SKIP: ormolu,format-juvix-files,typecheck-juvix-examples
+  CAIRO_VM_VERSION: 6c324e0d761013f38b8b743e515a65ac1a380206
+  RISC0_VM_VERSION: v3.0.3
+  # This is the top commit hash in the branch lukasz/juvix-ci-stable
+  # of the anoma repository.
+  ANOMA_VERSION: c8c2a385dd916a28982918fdc22da90c409e347a
+  JUST_ARGS: runtimeCcArg=$CC runtimeLibtoolArg=$LIBTOOL
+  STACK_BUILD_ARGS: --pedantic -j4 --ghc-options=-j
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - uses: pre-commit/action@v3.0.0
+
+  ormolu:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: extractions/setup-just@v2
+
+      - name: Install hpack
+        run: sudo apt install -y hpack
+
+      - name: Generate juvix.cabal
+        run: hpack
+
+      - name: Add ~/.local/bin to PATH
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache ormolu
+        id: ormolu-cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.local/bin/ormolu
+          key: ${{ runner.os }}-ormolu-0.5.3.0
+
+      - name: Install ormolu
+        if: steps.ormolu-cache.outputs.cache-hit != 'true'
+        run: |
+          curl -L https://github.com/tweag/ormolu/releases/download/0.5.3.0/ormolu-Linux.zip -o ormolu.zip
+          unzip ormolu.zip
+          mkdir -p $HOME/.local/bin
+          mv ormolu $HOME/.local/bin/ormolu
+          chmod +x $HOME/.local/bin/ormolu
+
+      - name: Run ormolu
+        run: just format check
+
+      - name: Report formatting error
+        if: failure()
+        run: echo "Some Haskell files are not formatted. Please run 'just format'"
+
+  build-and-test-linux:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Free disk space
+        run: |
+          df -h
+          echo "/usr/local"
+          du -hsc /usr/local/*
+          sudo rm -rf \
+            /usr/local/aws-sam-cil \
+            /usr/local/julia* || :
+          echo "end /usr/local"
+          echo "/usr/local/lib"
+          du -hsc /usr/local/lib/*
+          sudo rm -rf \
+            /usr/local/lib/android \
+            /usr/local/lib/heroku \
+            /usr/local/lib/node_modules || :
+          echo "end /usr/local/lib"
+          echo "/usr/local/share"
+          du -hsc /usr/local/share/*
+          sudo rm -rf \
+            /usr/local/share/chromium \
+            /usr/local/share/powershell || :
+          echo "end /usr/local/share"
+          echo "/opt/hostedtoolcache/"
+          du -hsc /opt/hostedtoolcache/*
+          sudo rm -rf \
+            /opt/hostedtoolcache/CodeQL \
+            /opt/hostedtoolcache/go \
+            /opt/hostedtoolcache/PyPy \
+            /opt/hostedtoolcache/node || :
+          echo "end /opt/hostedtoolcache/*"
+          sudo apt purge -y \
+            firefox \
+            google-chrome-stable \
+            microsoft-edge-stable
+          df -h
+
+      - uses: extractions/setup-just@v2
+
+      - name: Checkout our repository
+        uses: actions/checkout@v3
+        with:
+          path: main
+          submodules: true
+
+      - name: Checkout Anoma repo
+        uses: actions/checkout@v4
+        with:
+          repository: anoma/anoma
+          ref: ${{ env.ANOMA_VERSION }}
+          path: anoma
+
+      - name: Add ~/.local/bin to PATH
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Set up Elixir
+        id: beam
+        uses: erlef/setup-beam@v1.18.2
+        with:
+          elixir-version: "1.17.3"
+          otp-version: "27.1"
+
+      # Anoma requires a newer version of protoc than is available from apt
+      - name: Install protoc
+        run: |
+          curl -LO https://github.com/protocolbuffers/protobuf/releases/download/v29.0/protoc-29.0-linux-x86_64.zip && \
+          unzip protoc-29.0-linux-x86_64.zip -d $HOME/.local
+
+      - name: Cache anoma
+        id: cache-anoma
+        uses: actions/cache@v3
+        with:
+          path: ${{ github.workspace }}/anoma
+          key: "${{ runner.os }}-${{ env.ANOMA_VERSION }}-anoma"
+
+      - name: Install Protobuf Elixir dependencies
+        shell: bash
+        working-directory: ${{ github.workspace }}/anoma
+        run: |
+          version=$(echo -n $(elixir -e "$(<mix.lock) |> Map.get(:protobuf) |> elem(2) |> IO.puts"))
+          echo "version: ${version}"
+          mix escript.install hex protobuf "$version" --force
+
+      - name: Build anoma
+        if: steps.cache-anoma.outputs.cache-hit != 'true'
+        working-directory: ${{ github.workspace }}/anoma
+        run: |
+          mix local.hex --force
+          echo "$HOME/.mix/escripts" >> $GITHUB_PATH
+          mix deps.get
+          mix compile
+          mix do --app anoma_client escript.build
+
+      - name: Cache LLVM and Clang
+        id: cache-llvm
+        uses: actions/cache@v3
+        with:
+          path: |
+            C:/Program Files/LLVM
+            ./llvm
+          key: "${{ runner.os }}-llvm-13"
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "13.0"
+          cached: "${{ steps.cache-llvm.outputs.cache-hit }}"
+
+      - name: Download and extract wasi-sysroot
+        run: >
+          curl
+          https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/wasi-sysroot-15.0.tar.gz
+          -OL
+
+          tar xfv wasi-sysroot-15.0.tar.gz
+
+      - name: Set WASI_SYSROOT_PATH
+        run: |
+          echo "WASI_SYSROOT_PATH=$GITHUB_WORKSPACE/wasi-sysroot" >> $GITHUB_ENV
+
+      - name: Set ANOMA_PATH
+        run: |
+          echo "ANOMA_PATH=${{ github.workspace }}/anoma" >> $GITHUB_ENV
+
+      - run: echo "HOME=$HOME" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Install the latest Wasmer version
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+          repo: wasmerio/wasmer
+          binaries-location: bin
+          chmod: 0755
+
+      - name: Install libs
+        run: sudo apt install -y libncurses5
+
+      - name: Cache CairoVM
+        id: cache-cairo-vm
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HOME }}/.local/bin/juvix-cairo-vm
+          key: ${{ runner.os }}-cairo-vm-${{ env.CAIRO_VM_VERSION }}
+
+      - name: Install Rust toolchain
+        if: steps.cache-cairo-vm.outputs.cache-hit != 'true'
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: 1.81.0
+          cache-on-failure: false
+
+      - name: Install RISC0 VM
+        shell: bash
+        run: |
+          curl -L https://risczero.com/install | bash
+          ~/.risc0/bin/rzup install
+          ~/.risc0/bin/rzup install r0vm 3.0.3
+
+      - name: Checkout CairoVM
+        uses: actions/checkout@v4
+        if: steps.cache-cairo-vm.outputs.cache-hit != 'true'
+        with:
+          repository: anoma/juvix-cairo-vm
+          path: juvix-cairo-vm
+          ref: ${{ env.CAIRO_VM_VERSION }}
+
+      - name: Install Cairo VM
+        if: steps.cache-cairo-vm.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd juvix-cairo-vm
+          cargo build --release
+          cp target/release/juvix-cairo-vm $HOME/.local/bin/juvix-cairo-vm
+
+      - name: Install run_cairo_vm.sh
+        shell: bash
+        run: |
+          cp main/scripts/run_cairo_vm.sh $HOME/.local/bin/run_cairo_vm.sh
+
+      - name: Make runtime
+        run: |
+          cd main
+          just ${{ env.JUST_ARGS }} build runtime
+
+      - name: Test Rust runtime
+        run: |
+          cd main/runtime/rust/juvix
+          cargo test --release
+
+      # We use the options:
+      #   - -fhide-source-paths
+      #   - -fwrite-ide-info -hiedir=.hie
+      # in package.yaml.
+      #
+      # If a previously available .hie directory is missing then GHC will rebuild the whole project.
+      # with reason: HIE file is missing. So we need to cache it.
+      - name: Cache .hie
+        id: cache-hie
+        uses: actions/cache@v3
+        with:
+          path: main/.hie
+          key: ${{ runner.os }}-stack-hie
+
+      - name: Stack setup
+        id: stack
+        uses: freckle/stack-action@v5
+        with:
+          working-directory: main
+          stack-build-arguments: ${{ env.STACK_BUILD_ARGS }}
+          test: false
+
+      - name: Install Juvix
+        id: test
+        if: ${{ success() }}
+        run: |
+          cd main
+          just ${{ env.JUST_ARGS }} install
+
+      - name: Get short SHA
+        run: echo "JUVIX_SHORT_SHA=${GITHUB_SHA:0:7}" >> $GITHUB_ENV
+
+      - name: Set juvix binary path
+        run: echo "JUVIX_BINARY_PATH=$HOME/.local/bin/juvix" >> $GITHUB_ENV
+
+      - name: store juvix binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: juvix-${{ env.JUVIX_SHORT_SHA }}
+          path: ${{ env.JUVIX_BINARY_PATH }}
+
+      - name: Test juvix
+        run: |
+          cd main
+          just ${{ env.JUST_ARGS }} test
+
+      - name: Typecheck and format Juvix examples
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          cd main
+          make check-format-juvix-files && make typecheck-juvix-examples
+
+      - name: Install Smoke for testing
+        uses: jaxxstorm/action-install-gh-release@v1.10.0
+        with:
+          repo: jonaprieto/smoke
+          platform: linux
+          tag: v2.3.2
+          chmod: 0755
+          rename-to: smoke
+          extension-matching: disable
+          cache: enable
+
+      # Smoke tests make git commits
+      - name: Setup git
+        shell: bash
+        run: |
+          git config --global user.email "tara-juvix@heliax.dev"
+          git config --global user.name "Tara"
+          git config --global init.defaultBranch main
+
+      - name: Smoke testing
+        id: smoke-linux
+        if: ${{ success() }}
+        run: |
+          cd main
+          make smoke-only
+
+  build-and-test-macos:
+    runs-on: macos-14
+    if: false
+    steps:
+      - uses: extractions/setup-just@v2
+
+      - name: Checkout our repository
+        uses: actions/checkout@v3
+        with:
+          path: main
+          submodules: true
+
+      - name: install stack
+        run: |
+          brew install haskell-stack
+
+      - name: Install Sed
+        run: |
+          brew install gnu-sed
+          echo "$(brew --prefix)/opt/gnu-sed/libexec/gnubin" >> $GITHUB_PATH
+
+      - name: Test Sed
+        run: |
+          sed --version
+
+      - name: Install coreutils
+        run: |
+          brew install coreutils
+
+      - name: Test sha256sum (used by smoke)
+        run: |
+          sha256sum --version
+
+      - name: Download and extract wasi-sysroot
+        run: >
+          curl
+          https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-15/wasi-sysroot-15.0.tar.gz
+          -OL
+
+          tar xfv wasi-sysroot-15.0.tar.gz
+
+      - name: Set WASI_SYSROOT_PATH
+        run: |
+          echo "WASI_SYSROOT_PATH=$GITHUB_WORKSPACE/wasi-sysroot" >> $GITHUB_ENV
+
+      - name: Install the latest Wasmer version
+        uses: jaxxstorm/action-install-gh-release@v1.11.0
+        with:
+          repo: wasmerio/wasmer
+          binaries-location: bin
+          chmod: 0755
+
+      # smoke dynamically links to icu4c, so a cached binary of smoke will break
+      # when brew bumps the icu4c version. In the following steps we use the
+      # icu4c version in the cache key of the smoke build to avoid this issue.
+      #
+      # NB: The smoke build cannot be done as a separate job because the smoke
+      # binary must be built using exactly the same version of the macos-12
+      # runner image as the smoke testing step to make sure that the icu4c
+      # versions match.
+      - name: Checkout smoke repo
+        uses: actions/checkout@v3
+        with:
+          repository: jonaprieto/smoke
+          ref: regex-icu
+          path: smoke-repo
+
+      - name: Install ICU4C
+        run: |
+          brew install icu4c
+          brew link icu4c --force
+
+      - name: Get ICU4C version
+        id: icuversion
+        run: |
+          ICUVERSION=$(echo -n $(brew list --versions icu4c | head -n 1 | sed -E 's/ /-/g'))
+          echo "version=$ICUVERSION" >> $GITHUB_OUTPUT
+
+      - name: Build smoke
+        env:
+          LDFLAGS: -L/usr/local/opt/icu4c/lib
+          CPPFLAGS: -I/usr/local/opt/icu4c/include
+          PKG_CONFIG_PATH: /usr/local/opt/icu4c/lib/pkgconfig
+        uses: freckle/stack-action@v4
+        with:
+          test: false
+          stack-arguments: --copy-bins
+          working-directory: smoke-repo
+          cache-prefix: ${{ runner.arch }}-${{ steps.icuversion.outputs.version }}
+          pedantic: false
+
+      - name: Set homebrew LLVM CC and LIBTOOL vars (macOS)
+        run: |
+          echo "CC=$(brew --prefix llvm@15)/bin/clang" >> $GITHUB_ENV
+          echo "LIBTOOL=$(brew --prefix llvm@15)/bin/llvm-ar" >> $GITHUB_ENV
+
+      - name: Add ~/.local/bin to PATH
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - run: echo "HOME=$HOME" >> $GITHUB_ENV
+        shell: bash
+
+      - name: Cache CairoVM
+        id: cache-cairo-vm
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.HOME }}/.local/bin/juvix-cairo-vm
+          key: ${{ runner.os }}-${{ runner.arch }}-cairo-vm-${{ env.CAIRO_VM_VERSION }}
+
+      - name: Install Rust toolchain
+        if: steps.cache-cairo-vm.outputs.cache-hit != 'true'
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+
+      - name: Install RISC0 VM
+        shell: bash
+        run: |
+          cargo install cargo-binstall@1.6.9 --force
+          cargo binstall cargo-risczero@1.1.1 --no-confirm --force
+          cargo risczero install
+
+      - name: Checkout CairoVM
+        uses: actions/checkout@v4
+        if: steps.cache-cairo-vm.outputs.cache-hit != 'true'
+        with:
+          repository: anoma/juvix-cairo-vm
+          path: juvix-cairo-vm
+          ref: ${{ env.CAIRO_VM_VERSION }}
+
+      - name: Install Cairo VM
+        if: steps.cache-cairo-vm.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          cd juvix-cairo-vm
+          cargo build --release
+          cp -a target/release/juvix-cairo-vm $HOME/.local/bin/juvix-cairo-vm
+
+      - name: Install run_cairo_vm.sh
+        shell: bash
+        run: |
+          cp -a main/scripts/run_cairo_vm.sh $HOME/.local/bin/run_cairo_vm.sh
+
+      - name: Make runtime
+        run: |
+          cd main
+          just ${{ env.JUST_ARGS }} build runtime
+
+      - name: Test Rust runtime
+        run: |
+          cd main/runtime/rust/juvix
+          cargo test --release
+
+      # We use the options:
+      #   - -fhide-source-paths
+      #   - -fwrite-ide-info -hiedir=.hie
+      # in package.yaml.
+      #
+      # If a previously available .hie directory is missing then GHC will rebuild the whole project.
+      # with reason: HIE file is missing. So we need to cache it.
+      - name: Cache .hie
+        id: cache-hie
+        uses: actions/cache@v3
+        with:
+          path: main/.hie
+          key: ${{ runner.os }}-${{ runner.arch }}-stack-hie
+
+      - name: Stack setup
+        id: stack
+        uses: freckle/stack-action@v5
+        with:
+          working-directory: main
+          stack-build-arguments: ${{ env.STACK_BUILD_ARGS }}
+          test: false
+          cache-prefix: ${{ runner.arch }}
+
+      - name: Add homebrew clang to the PATH (macOS)
+        run: |
+          echo "$(brew --prefix llvm@15)/bin" >> $GITHUB_PATH
+
+      - name: Install and test Juvix
+        if: ${{ success() }}
+        run: |
+          cd main
+          just ${{ env.JUST_ARGS }} install
+          just ${{ env.JUST_ARGS }} test
+
+      - name: Typecheck and format Juvix examples
+        if: ${{ success() }}
+        shell: bash
+        run: |
+          cd main
+          make check-format-juvix-files && make typecheck-juvix-examples
+
+      # Smoke tests make git commits
+      - name: Setup git
+        shell: bash
+        run: |
+          git config --global user.email "tara-juvix@heliax.dev"
+          git config --global user.name "Tara"
+          git config --global init.defaultBranch main
+
+      - name: Smoke testing (macOS)
+        id: smoke-macos
+        if: ${{ success() }}
+        run: |
+          cd main
+          make CC=$CC LIBTOOL=$LIBTOOL smoke

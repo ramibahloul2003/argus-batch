@@ -1,0 +1,133 @@
+# This is a separate run of the Python test suite that doesn't cache the tox
+# environment and runs from a schedule. The purpose is to test whether
+# updating pinned dependencies would cause any tests to fail.
+
+name: Periodic CI
+
+env:
+  # Current supported uv version. The uv documentation recommends pinning
+  # this. The version should match the version used in .pre-commit-config.yaml
+  # and frozen in uv.lock. It is updated by make update-deps.
+  UV_VERSION: "0.11.19"
+
+"on":
+  schedule:
+    - cron: "0 12 * * 1"
+  workflow_dispatch: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          # Ensure the documentation gets the right version.
+          fetch-depth: 0
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Set up Minikube
+        uses: medyagh/setup-minikube@latest
+
+      - name: Install extra packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y graphviz libpq-dev libldap2-dev libsasl2-dev
+
+      - name: Update dependencies
+        run: make update-deps
+
+      - name: Run nox
+        run: uv run --only-group=nox nox -s lint typing test-full docs docs-linkcheck
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
+  # The test job tests everything with the latest Python version. The
+  # Gafaelfawr client may additionally support older Python versions and thus
+  # must be independently tested for those versions using a matrix. Do not
+  # include the latest Python version in this matrix; that will be tested
+  # above.
+  test-client:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    strategy:
+      matrix:
+        python:
+          - "3.13"
+
+    steps:
+      - uses: actions/checkout@v6
+
+      # The top-level Python version must be used for make update-deps,
+      # followed by a switch to the matrix version. Otherwise, the test may
+      # fail because the version of Python is too old to update some
+      # directories.
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Update dependencies
+        run: make update-deps
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Run nox
+        run: uv run --only-group=nox nox -P ${{ matrix.python }} -s typing test
+        working-directory: client
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic client test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}
+
+  pypi:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [test, test-client]
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # full history for setuptools_scm
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: ${{ env.UV_VERSION }}
+
+      - name: Build the package
+        run: uv build --no-sources
+        working-directory: client
+
+      - name: Report status
+        if: failure()
+        uses: ravsamhq/notify-slack-action@v2
+        with:
+          status: ${{ job.status }}
+          notify_when: "failure"
+          notification_title: "Periodic packaging test for {repo} failed"
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_ALERT_WEBHOOK }}

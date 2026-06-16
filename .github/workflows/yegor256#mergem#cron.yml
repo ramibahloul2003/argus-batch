@@ -1,0 +1,38 @@
+# SPDX-FileCopyrightText: Copyright (c) 2022-2026 Yegor Bugayenko
+# SPDX-License-Identifier: MIT
+---
+# yamllint disable rule:line-length
+name: cron
+'on':
+  schedule:
+    - cron: '17 2,8,16 * * *'
+jobs:
+  cron:
+    timeout-minutes: 45
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: 3.4
+          bundler-cache: true
+      - run: bundle config set --global path "$(pwd)/vendor/bundle"
+      - run: bundle install --no-color
+      - run: bundle exec rake rubocop
+      - run: |
+          # --github-cache=yegor256/mergem/cache/latest.txt \
+          bundle exec ruby bin/mergem --verbose \
+            --token=${{ secrets.TOKEN }} \
+            --repo=yegor256/* \
+            --repo=cqfn/* \
+            --repo=objectionary/* \
+            --repo=zerocracy/* \
+            --repo=polystat/* \
+            --repo=sttc/* \
+            --repo=zold-io/* \
+            --repo=jcabi/* \
+            --exclude=cqfn/astranaut \
+            --exclude=cqfn/astranaut-core \
+            --exclude=cqfn/astranaut-maven-plugin \
+            --exclude=objectionary/ineo-maven-plugin \
+            --exclude=objectionary/jeo-maven-plugin

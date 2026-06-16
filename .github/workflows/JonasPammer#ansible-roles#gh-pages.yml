@@ -1,0 +1,87 @@
+---
+name: re-generate files
+
+"on":
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - ".github/workflows/gh-pages.yml"
+      - "templates/README.adoc.jinja2"
+      - "all-repos-in.json"
+      - "ansible_roles/*.py"
+      - "ansible_roles_scripts/script_utils.py"
+      - "requirements.txt"
+      - "setup.cfg"
+      - "setup.py"
+  schedule:
+    # At 05:00am
+    - cron: "0 5 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  gh-pages:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+      pages: write
+    steps:
+      - name: check out the codebase
+        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4
+        with: # https://github.com/stefanzweifel/git-auto-commit-action#checkout-the-correct-branch
+          ref: ${{ github.head_ref }}
+
+      - name: set up python 3
+        uses: actions/setup-python@0a5c61591373683505ea898e09a3ea4f39ef2b9c # v5
+        with:
+          python-version: "3.10"
+
+      - name: install graphviz
+        run: sudo apt-get install -y graphviz
+
+      - name: Install Project from setup.cfg.
+        run: |
+          python3 -m pip install -r requirements.txt
+          python3 -m pip install .
+
+      - name: Generate Documents from Jinja2 Templates.
+        run: ansible-roles
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate png's from generated dot's.
+        run: |
+          for file in $(ls graphs/*.dot) ; do \
+            dot "${file}" -Tpng -Nfontname="Open Sans" -Efontname="Open Sans" -Gfontname="Open Sans" -o "${file%.*}".png ; \
+            dot "${file}" -Tsvg -Nfontname="Open Sans" -Efontname="Open Sans" -Gfontname="Open Sans" -o "${file%.*}".svg ; \
+          done
+
+      - name: Commit generated files back to repository.
+        uses: stefanzweifel/git-auto-commit-action@8756aa072ef5b4a080af5dc8fef36c5d586e521d # v5
+        with:
+          commit_message: "chore: re-generate \n ${{ github.sha }}"
+          file_pattern: "*.adoc *.dot *.png *.svg"
+
+      - name: setup ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "2.7.0"
+
+      - name: install asciidoctor
+        run: gem install --no-document asciidoctor rouge coderay
+
+      - name: Generate HTML of Asciidoctor files to /docs.
+        run: asciidoctor --backend=html5 --destination-dir docs --out-file index.html README.adoc
+
+      - name: Copy '/graphs' into '/docs'
+        run: cp -rf graphs/ docs/
+
+      - name: Deploy /docs to GitHub Pages.
+        uses: peaceiris/actions-gh-pages@373f7f263a76c20808c831209c920827a82a2847 # v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./docs/

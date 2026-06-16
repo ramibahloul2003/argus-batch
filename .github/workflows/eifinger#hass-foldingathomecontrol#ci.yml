@@ -1,0 +1,81 @@
+---
+name: CI
+
+"on":
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint GitHub Actions
+        uses: eifinger/actionlint-action@bdc2a242a53ae50e609e29f8eeb0d05d792edc09  # v1.7.0
+      - uses: eifinger/setup-uv@d8db0a86d3d88f3017a4e6b8a1e2b234e7a0a1b5  # v4.0.0
+        with:
+          enable-cache: true
+      - name: Lint
+        run: |
+          uv run --frozen pre-commit run --all-files
+  hacs:
+    name: HACS Action
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: HACS Action
+        uses: "hacs/action@main"
+        with:
+          category: "integration"
+  hass_validate:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hassfest
+        uses: home-assistant/actions/hassfest@master
+  noop-release:
+    name: Semantic Release Noop
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - hacs
+      - hass_validate
+    if: github.ref != 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Python Semantic Release Noop
+        uses: python-semantic-release/python-semantic-release@v7.34.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          repository_username: __token__
+          repository_password: ${{ secrets.PYPI_TOKEN }}
+          additional_options: "--noop"
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    needs:
+      - build
+      - hacs
+      - hass_validate
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@v7.34.6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          repository_username: __token__
+          repository_password: ${{ secrets.PYPI_TOKEN }}

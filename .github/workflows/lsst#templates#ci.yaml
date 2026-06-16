@@ -1,0 +1,62 @@
+name: CI
+
+"on":
+  push:
+    branches-ignore:
+      # These should always correspond to pull requests, so ignore them for
+      # the push trigger and let them be triggered by the pull_request
+      # trigger, avoiding running the workflow twice.  This is a minor
+      # optimization so there's no need to ensure this is comprehensive.
+      - "dependabot/**"
+      - "renovate/**"
+      - "t/**"
+      - "tickets/**"
+      - "u/**"
+    tags:
+      - "*"
+  pull_request: {}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python:
+          - "3.10"
+          - "3.11"
+          - "3.12"
+          - "3.13"
+          - "3.14"
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install dependencdies
+        run: pip install -r requirements.txt
+
+      # The check command rebuilds all examples with scons and ensures that
+      # generated examples match the committed state.
+      - name: Check templates
+        run: |
+          templatekit check \
+            --ignore "project_templates/technote_rst/testn-000/technote.toml" \
+            --ignore "project_templates/technote_md/testn-000/technote.toml"
+
+      # Test TeX builds only with the latest Python version, since they're
+      # fairly heavy-weight and the Python version shouldn't matter.
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: sqrereadonly
+          password: ${{ secrets.DOCKERHUB_SQREREADONLY_TOKEN }}
+        if: matrix.python == '3.14'
+
+      - name: Check tex builds
+        run: |
+          docker run --rm -v `pwd`:/workspace -w /workspace lsstsqre/lsst-texmf:latest sh -c './testTexDocs.sh'
+        if: matrix.python == '3.14'

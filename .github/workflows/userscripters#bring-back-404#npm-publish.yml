@@ -1,9 +1,0 @@
-name: Publish a package
-
-on:
-  release:
-    types: [released]
-
-jobs:
-  build:
-    uses: userscripters/shared-actions/.github/workflows/workflow-npm_publish.yml@master

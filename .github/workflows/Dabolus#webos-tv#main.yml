@@ -1,0 +1,52 @@
+name: Build and deploy
+'on':
+  push:
+    branches:
+      - main
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install deps
+        run: yarn install
+      - name: Lint
+        run: yarn lint
+      - name: Test
+        run: yarn test
+      - name: Build
+        run: yarn build
+      - name: Generate docs
+        run: |
+          yarn generate-docs
+          mv api /tmp/webos-tv
+          git reset --hard
+          cp CODE_OF_CONDUCT.md /tmp/webos-tv
+      - name: Checkout GitHub Pages branch
+        uses: actions/checkout@v3
+        with:
+          ref: gh-pages
+          submodules: true
+      - name: Deploy docs
+        run: |
+          # Prepare docs files
+          shopt -s extglob
+          rm -rf !(.|..|.git|_config.yml)
+          mv /tmp/webos-tv/* .
+          # Push the docs to the gh-pages branch
+          git config user.name "${GH_NAME}"
+          git config user.email "${GH_EMAIL}"
+          git add -A
+          git commit -m "docs: automatic generation"
+          echo "Pushing to gh-pages branch..."
+          git push -q origin gh-pages
+        env:
+          GH_NAME: ${{ secrets.GH_NAME }}
+          GH_EMAIL: ${{ secrets.GH_EMAIL }}

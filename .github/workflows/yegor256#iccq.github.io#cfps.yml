@@ -1,0 +1,30 @@
+# SPDX-FileCopyrightText: Copyright (c) 2020-2026 Yegor Bugayenko
+# SPDX-License-Identifier: MIT
+---
+# yamllint disable rule:line-length
+name: cfps
+'on':
+  push:
+    branches: master
+    paths: ['cfp/**', '.github/workflows/cfps.yml']
+jobs:
+  cfp:
+    timeout-minutes: 15
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+      - run: |
+          sudo apt-get update --yes --fix-missing
+          sudo apt-get install --yes ghostscript texlive-extra-utils
+      - uses: zauguin/install-texlive@v4.4.0
+        with:
+          packages: scheme-basic geometry xcolor microtype etoolbox fontspec changepage fancyhdr graphics hyperref microtype paratype pgf textpos wrapfig latexmk xetex
+          texlive_version: 2026
+      - run: make -C cfp
+      - run: make -C cfp collect
+      - run: mv cfp/output .
+      - uses: JamesIves/github-pages-deploy-action@v4.8.0
+        with:
+          branch: pdf
+          folder: output
+          clean: false

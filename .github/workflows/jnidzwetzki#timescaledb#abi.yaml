@@ -1,0 +1,150 @@
+# Test minimum and maximum ABI compatible postgres version
+#
+# Build timescaledb against specific postgres version and then run our
+# tests with that library loaded in a different postgres version.
+# This is to detect changes in required minimum/maximum postgres versions
+# for our built packages.
+# This test is expected to fail when upstream does ABI incompatible changes
+# in a new minor postgresql version.
+name: ABI Test
+"on":
+  schedule:
+    # run daily 20:00 on main branch
+    - cron: '0 20 * * *'
+  push:
+    branches:
+      - prerelease_test
+jobs:
+  config:
+    runs-on: ubuntu-latest
+    outputs:
+      pg13_abi_min: ${{ steps.config.outputs.pg13_abi_min }}
+      pg14_abi_min: ${{ steps.config.outputs.pg14_abi_min }}
+      pg15_abi_min: ${{ steps.config.outputs.pg15_abi_min }}
+      pg13_latest: ${{ steps.config.outputs.pg13_latest }}
+      pg14_latest: ${{ steps.config.outputs.pg14_latest }}
+      pg15_latest: ${{ steps.config.outputs.pg15_latest }}
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v3
+    - name: Read configuration
+      id: config
+      run: python .github/gh_config_reader.py
+
+  abi_test:
+    name: ABI Test PG${{ matrix.test }}
+    runs-on: ubuntu-latest
+    needs: config
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [ "13backward", "13forward", "14backward", "14forward",
+          "15backward", "15forward" ]
+        os: [ windows-2019 ]
+        include:
+          - test: 13backward
+            pg: 13
+            builder: ${{ fromJson(needs.config.outputs.pg13_latest) }}
+            tester: ${{ fromJson(needs.config.outputs.pg13_abi_min ) }}
+          - test: 13forward
+            pg: 13
+            builder: ${{ fromJson(needs.config.outputs.pg13_abi_min ) }}
+            tester: ${{ fromJson(needs.config.outputs.pg13_latest) }}
+          - test: 14backward
+            pg: 14
+            builder: ${{ fromJson(needs.config.outputs.pg14_latest) }}
+            tester: ${{ fromJson(needs.config.outputs.pg14_abi_min) }}
+            ignores: memoize
+          - test: 14forward
+            pg: 14
+            builder: ${{ fromJson(needs.config.outputs.pg14_abi_min) }}
+            tester: ${{ fromJson(needs.config.outputs.pg14_latest) }}
+          - test: 15backward
+            pg: 15
+            builder: ${{ fromJson(needs.config.outputs.pg15_latest) }}
+            tester: ${{ fromJson(needs.config.outputs.pg15_abi_min) }}
+            ignores: partialize_finalize
+          - test: 15forward
+            pg: 15
+            builder: ${{ fromJson(needs.config.outputs.pg15_abi_min) }}
+            tester: ${{ fromJson(needs.config.outputs.pg15_latest) }}
+            ignores: partialize_finalize
+
+    steps:
+
+    - name: Checkout TimescaleDB
+      uses: actions/checkout@v3
+
+    - name: Build extension
+      run: |
+        BUILDER_IMAGE="postgres:${{matrix.builder}}-alpine"
+
+        # Recent versions of alpine have OpenSSL 3 as the
+        # default version which is unfortunately not packaged
+        # for the earliest versions we check against in this
+        # test. So we pin the version we compile against to
+        # OpenSSL 1.1 in the backwards test.
+        if [[ "${{ matrix.test }}" == *backward ]]; then
+          EXTRA_PKGS="openssl1.1-compat-dev"
+        else
+          EXTRA_PKGS="openssl-dev"
+        fi
+
+        docker run -i --rm -v $(pwd):/mnt -e EXTRA_PKGS="${EXTRA_PKGS}" ${BUILDER_IMAGE} bash <<"EOF"
+          apk add cmake gcc make build-base krb5-dev git ${EXTRA_PKGS}
+          git config --global --add safe.directory /mnt
+          cd /mnt
+          BUILD_DIR=build_abi BUILD_FORCE_REMOVE=true ./bootstrap -DENABLE_MULTINODE_TESTS=ON
+          make -C build_abi install
+          mkdir -p build_abi/install_ext build_abi/install_lib
+          cp `pg_config --sharedir`/extension/timescaledb*.{control,sql} build_abi/install_ext
+          cp `pg_config --pkglibdir`/timescaledb*.so build_abi/install_lib
+        EOF
+
+    - name: Run tests
+      run: |
+        TEST_IMAGE="postgres:${{ matrix.tester }}-alpine"
+
+        if [[ "${{ matrix.test }}" == *backward ]]; then
+          EXTRA_PKGS="openssl-dev"
+        else
+          EXTRA_PKGS="openssl1.1-compat-dev"
+        fi
+
+        docker run -i --rm -v $(pwd):/mnt -e EXTRA_PKGS="${EXTRA_PKGS}" ${TEST_IMAGE} bash <<"EOF"
+          apk add cmake gcc make build-base krb5-dev sudo ${EXTRA_PKGS}
+          cd /mnt
+          cp build_abi/install_ext/* `pg_config --sharedir`/extension/
+          cp build_abi/install_lib/* `pg_config --pkglibdir`
+          chown -R postgres /mnt
+          set -o pipefail
+          sudo -u postgres make -C build_abi -k regresscheck regresscheck-t \
+            regresscheck-shared IGNORES="${{matrix.ignores}}" | tee installcheck.log
+        EOF
+
+    - name: Show regression diffs
+      if: always()
+      id: collectlogs
+      run: |
+        sudo chmod a+rw .
+        sudo find . -name regression.diffs -exec cat {} + > regression.log
+        sudo find . -name postmaster.log -exec cat {} + > postgres.log
+        if [[ -s regression.log ]]; then echo "regression_diff=true" >>$GITHUB_OUTPUT; fi
+        grep -e 'FAILED' -e 'failed (ignored)' installcheck.log || true
+        cat regression.log
+
+    - name: Save regression diffs
+      if: always() && steps.collectlogs.outputs.regression_diff == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: Regression diff ABI Breakage ${{ matrix.type }} PG${{ matrix.pg }}
+        path: regression.log
+
+    - name: Save postmaster.log
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: PostgreSQL log ABI Breakage ${{ matrix.type }} PG${{ matrix.pg }}
+        path: postgres.log
+

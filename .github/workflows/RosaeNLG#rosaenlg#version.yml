@@ -1,0 +1,420 @@
+name: complete with packaging
+'on':
+  push:
+    branches:
+      - v*.*.*
+env:
+  ROSAENLG_VERSION: 4.4.0
+jobs:
+  build_test:
+    name: 'Build, test and save build artifacts'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - name: use proper version of node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: yarn
+      - name: cache node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: '${{ runner.OS }}-node-${{ hashFiles(''**/yarn.lock'') }}'
+          restore-keys: |
+            ${{ runner.OS }}-node-
+      - name: cache performance monitoring
+        uses: actions/cache@v3
+        with:
+          path: packages/perf-monitoring/benchmark-*.json
+          key: benchmark
+      - name: check environment versions
+        run: |
+          npm -v
+          node --version
+      - name: install environment
+        run: |
+          npm install -g pegjs
+          npm install -g lerna
+          yarn install
+          rm -f packages/rosaenlg/dist/rollup/*.js
+      - name: build
+        run: |
+          lerna run build
+      - name: test
+        run: |
+          lerna run test
+          # checking performance monitoring packages
+          ls -l packages/perf-monitoring/benchmark-*.json
+      - name: Zip artifact for deployment
+        run: |
+          # zip info
+          zip --version
+          # log where we are
+          echo starting zip process
+          pwd
+          ls -l
+          # zip
+          zip --recurse-paths --quiet build.zip packages/*/dist packages/*/resources_pub packages/*/coverage packages/*/lib packages/rosaenlg-lambda/.serverless packages/rosaenlg-antora-ui/build packages/rosaenlg-doc-website/main packages/rosaenlg-doc-website/gh-pages
+          # check result
+          ls -l build.zip
+      - name: upload build
+        uses: actions/upload-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+          path: build.zip
+          retention-days: 1
+  sonarcloud:
+    name: SonarCloud
+    needs:
+      - build_test
+    runs-on: ubuntu-latest
+    steps:
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - uses: actions/checkout@v3
+      - name: download build
+        uses: actions/download-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+      - name: unzip build
+        run: |
+          echo starting unzip of the build
+          # log where we are
+          pwd
+          ls -l
+          # unzip (overwrite, quiet options)
+          unzip -o -q build.zip
+          # check result
+          echo unzip is done
+          ls -l
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          SONAR_TOKEN: '${{ secrets.SONAR_TOKEN }}'
+  publish_on_npm:
+    name: publish on npm
+    needs:
+      - sonarcloud
+    runs-on: ubuntu-latest
+    steps:
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - uses: actions/checkout@v3
+      - name: download build
+        uses: actions/download-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+      - name: unzip build
+        run: |
+          echo starting unzip of the build
+          # log where we are
+          pwd
+          ls -l
+          # unzip (overwrite, quiet options)
+          unzip -o -q build.zip
+          # check result
+          echo unzip is done
+          ls -l
+      - name: 'Use proper version of node.js, and setup registry'
+        uses: actions/setup-node@v3
+        with:
+          always-auth: true
+          node-version: 16.x
+          cache: yarn
+          registry-url: 'https://registry.npmjs.org'
+      - name: install environment
+        run: |
+          npm install -g lerna
+          git config core.filemode false # because rosaenlg-cli/index.js is now executable
+      - name: connect to npm
+        run: |
+          npm config set email=ludan.stoeckle@rosaenlg.org
+          npm config list
+          npm whoami
+        env:
+          NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
+      - name: publish packages
+        run: |
+          pwd
+          ls -l
+          ls -l packages/rosaenlg/dist/rollup # test purposes
+          node --version # debug
+          lerna publish from-package --yes
+        env:
+          NODE_AUTH_TOKEN: '${{ secrets.NPM_TOKEN }}'
+  public_doc_gh_pages:
+    name: publish doc on GitHub pages
+    needs:
+      - publish_on_npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - name: download build
+        uses: actions/download-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+      - name: unzip build
+        run: |
+          echo starting unzip of the build
+          # log where we are
+          pwd
+          ls -l
+          # unzip (overwrite, quiet options)
+          unzip -o -q build.zip
+          # check result
+          echo unzip is done
+          ls -l
+      - name: add nojekyll
+        run: |
+          cd packages/rosaenlg-doc-website
+          echo "disable jekyll to server _ folders" > gh-pages/.nojekyll
+      - name: debug
+        run: |
+          cd packages/rosaenlg-doc-website
+          pwd
+          ls -l
+          ls -l gh-pages
+      - name: "deploy \U0001F680"
+        uses: JamesIves/github-pages-deploy-action@3.7.1
+        with:
+          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
+          BRANCH: gh-pages
+          FOLDER: packages/rosaenlg-doc-website/gh-pages
+          CLEAN: true
+  public_doc_S3_main_website:
+    name: publish doc on main rosaenlg.org website
+    needs:
+      - public_doc_gh_pages
+    runs-on: ubuntu-latest
+    container:
+      image: mikesir87/aws-cli
+      env:
+        AWS_ACCESS_KEY_ID: '${{ secrets.AWS_ACCESS_KEY_ID }}'
+        AWS_SECRET_ACCESS_KEY: '${{ secrets.AWS_SECRET_ACCESS_KEY }}'
+        AWS_DEFAULT_REGION: eu-west-1
+    steps:
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - name: download build
+        uses: actions/download-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+      - name: unzip build
+        run: |
+          echo starting unzip of the build
+          # log where we are
+          pwd
+          ls -l
+          # unzip (overwrite, quiet options)
+          unzip -o -q build.zip
+          # check result
+          echo unzip is done
+          ls -l
+      - name: some test
+        run: |
+          cd packages/rosaenlg-doc-website
+          ls -l
+          ls -l main
+      - name: compress everything
+        run: |
+          cd packages/rosaenlg-doc-website
+          # compress everything ever found which is not that good but at least it is simple
+          find ./main \( -iname '*.*' \) -exec gzip -9 -n {} \; -exec mv {}.gz {} \;
+      - name: S3 sync
+        run: |
+          cd packages/rosaenlg-doc-website
+          aws s3 sync ./main s3://rosaenlg.org/ --content-encoding 'gzip' --exclude "*demos/*" --exclude "*ide/*"
+  publish_browser_ide_and_swaggers:
+    name: publish browser IDE and swaggers
+    needs:
+      - publish_on_npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - uses: actions/checkout@v3
+      - name: download build
+        uses: actions/download-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+      - name: unzip build
+        run: |
+          echo starting unzip of the build
+          # log where we are
+          pwd
+          ls -l
+          # unzip (overwrite, quiet options)
+          unzip -o -q build.zip
+          # check result
+          echo unzip is done
+          ls -l
+      - name: use proper version of node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: yarn
+      - name: cache node.js modules
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: '${{ runner.OS }}-node-${{ hashFiles(''**/yarn.lock'') }}'
+          restore-keys: |
+            ${{ runner.OS }}-node-
+      - name: install environment
+        run: yarn install
+      - name: publish browser IDE
+        run: node node_modules/gulp/bin/gulp.js --gulpfile packages/browser-ide-demo/gulpfile.js s3
+        env:
+          AWS_ACCESS_KEY_ID: '${{ secrets.AWS_ACCESS_KEY_ID }}'
+          AWS_SECRET_ACCESS_KEY: '${{ secrets.AWS_SECRET_ACCESS_KEY }}'
+      - name: publish swaggers
+        run: |
+          node node_modules/gulp/bin/gulp.js --gulpfile packages/rosaenlg-node-server/gulpfile.js s3
+          node node_modules/gulp/bin/gulp.js --gulpfile packages/rosaenlg-lambda/gulpfile.js s3
+        env:
+          AWS_ACCESS_KEY_ID: '${{ secrets.AWS_ACCESS_KEY_ID }}'
+          AWS_SECRET_ACCESS_KEY: '${{ secrets.AWS_SECRET_ACCESS_KEY }}'
+  docker_cli:
+    name: Docker for CLI
+    needs:
+      - publish_on_npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - uses: actions/checkout@v3
+      - name: download build
+        uses: actions/download-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+      - name: unzip build
+        run: |
+          echo starting unzip of the build
+          # log where we are
+          pwd
+          ls -l
+          # unzip (overwrite, quiet options)
+          unzip -o -q build.zip
+          # check result
+          echo unzip is done
+          ls -l
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: '${{ secrets.DOCKERHUB_USERNAME }}'
+          password: '${{ secrets.DOCKERHUB_TOKEN }}'
+      - name: Build test image
+        uses: docker/build-push-action@v2.0.1
+        with:
+          context: packages/rosaenlg-cli/docker/
+          file: packages/rosaenlg-cli/docker/Dockerfile
+          load: true
+          tags: '${{ env.DOCKER_TEST_TAG }}'
+          build-args: |
+            ROSAENLG_VERSION=${{ env.ROSAENLG_VERSION }}
+        env:
+          DOCKER_TEST_TAG: 'rosaenlg/cli:test_${{ env.GITHUB_REF_SLUG }}'
+      - name: Test image
+        run: |
+          cd packages/rosaenlg-cli/docker/
+          chmod +x ./test.sh
+          /bin/sh ./test.sh $DOCKER_TEST_TAG
+        env:
+          DOCKER_TEST_TAG: 'rosaenlg/cli:test_${{ env.GITHUB_REF_SLUG }}'
+      - name: Build and push final image
+        uses: docker/build-push-action@v2.0.1
+        with:
+          context: packages/rosaenlg-cli/docker/
+          file: packages/rosaenlg-cli/docker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_FINAL_TAG }}
+            rosaenlg/cli:latest
+          build-args: |
+            ROSAENLG_VERSION=${{ env.ROSAENLG_VERSION }}
+        env:
+          DOCKER_FINAL_TAG: 'rosaenlg/cli:${{ env.ROSAENLG_VERSION }}'
+  docker_server:
+    name: Docker Server
+    needs:
+      - publish_on_npm
+    runs-on: ubuntu-latest
+    steps:
+      - name: inject slug/short variables
+        uses: rlespinasse/github-slug-action@v4.x
+      - uses: actions/checkout@v3
+      - name: download build
+        uses: actions/download-artifact@v3
+        with:
+          name: 'build-${{ env.GITHUB_REF_SLUG }}'
+      - name: unzip build
+        run: |
+          echo starting unzip of the build
+          # log where we are
+          pwd
+          ls -l
+          # unzip (overwrite, quiet options)
+          unzip -o -q build.zip
+          # check result
+          echo unzip is done
+          ls -l
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        uses: docker/login-action@v1
+        with:
+          username: '${{ secrets.DOCKERHUB_USERNAME }}'
+          password: '${{ secrets.DOCKERHUB_TOKEN }}'
+      - name: Build test image
+        uses: docker/build-push-action@v2.0.1
+        with:
+          context: packages/rosaenlg-node-server/docker/
+          file: packages/rosaenlg-node-server/docker/Dockerfile
+          load: true
+          tags: '${{ env.DOCKER_TEST_TAG }}'
+          build-args: |
+            ROSAENLG_VERSION=${{ env.ROSAENLG_VERSION }}
+        env:
+          DOCKER_TEST_TAG: 'rosaenlg/server:test_${{ env.GITHUB_REF_SLUG }}'
+      - name: Test image
+        run: |
+          echo "checking curl..."
+          curl --version
+          cd packages/rosaenlg-node-server/docker/
+          echo "starting docker container..."
+          docker run -d -p 5000:5000 $DOCKER_TEST_TAG
+          echo "sleeping..."
+          sleep 20
+          echo "list processes"
+          ps -ef
+          chmod +x ./test.sh
+          echo "run test"
+          /bin/sh ./test.sh
+        env:
+          DOCKER_TEST_TAG: 'rosaenlg/server:test_${{ env.GITHUB_REF_SLUG }}'
+      - name: Build and push final image
+        uses: docker/build-push-action@v2.0.1
+        with:
+          context: packages/rosaenlg-node-server/docker/
+          file: packages/rosaenlg-node-server/docker/Dockerfile
+          push: true
+          tags: |
+            ${{ env.DOCKER_FINAL_TAG }}
+            rosaenlg/server:latest
+          build-args: |
+            ROSAENLG_VERSION=${{ env.ROSAENLG_VERSION }}
+        env:
+          DOCKER_FINAL_TAG: 'rosaenlg/server:${{ env.ROSAENLG_VERSION }}'

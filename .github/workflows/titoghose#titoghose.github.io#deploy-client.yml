@@ -1,0 +1,26 @@
+name: Deploy Client to GitHub Pages
+
+"on":
+  push:
+    paths:
+      - "**"
+      - "!public/data.json"
+    branches:
+      - main
+
+jobs:
+  client-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          
+      - name: Install dependencides
+        run: yarn && yarn build
+      
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@v4
+        with:
+          folder: build

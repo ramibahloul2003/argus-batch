@@ -1,0 +1,19 @@
+'on':
+  push:
+    branches: 
+     - "**"
+  schedule:
+    - cron: 0 14 * * *
+name: broken links?
+jobs:
+  linkChecker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Link Checker
+        id: lc
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --no-progress './**/*.md' './**/*.html' --insecure --verbose --accept 200,204,206 --exclude '^http://npmjs\.org' --exclude '^http://www\.npmjs\.com'
+      - name: Fail?
+        run: 'exit ${{ steps.lc.outputs.exit_code }}'

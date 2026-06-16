@@ -1,0 +1,73 @@
+name: Fetch and Summarize Data (Master)
+'on': 
+  workflow_dispatch:
+    inputs:
+      author:
+        description: 'Your name to be logged in this job'
+        required: true
+  push:
+    branches:
+      - master
+  schedule:
+    - cron: "*/15 * * * *"
+    
+jobs:
+  summarize:
+    name: summarize
+    runs-on: ubuntu-latest
+    steps:
+      - name: Job logging
+        run: echo "User ${{ github.event.inputs.author }}"
+
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          ref: 'master'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Download and Generate JSON data
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: node generate.js 2>&1 | tee output.txt && cat output.txt
+
+      - name: Generate charts
+        run: node generate_charts.js
+
+      - name: Publish Latest Data
+        run: node publish.js
+
+      - name: Send run status
+        run: curl --data-urlencode "status@output.txt" --data-urlencode "name=covid19mn-update" https://us-central1-covid19mn.cloudfunctions.net/status
+
+      - name: Git Status
+        run: git status
+
+      - name: Commit files
+        run: |
+          git config --local user.email tuvshuud@gmail.com
+          git config --local user.name "Automated Action"
+          git add docs/*/*.json docs/charts/*.svg
+          git commit -m "Automated Data Update" || exit 0
+
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: 'master'
+
+      - name: Deploy to Firebase
+        uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          repoToken: '${{ secrets.GITHUB_TOKEN }}'
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_COVID19MN }}'
+          channelId: live
+          projectId: covid19mn
+        env:
+          FIREBASE_CLI_PREVIEWS: hostingchannels

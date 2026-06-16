@@ -1,0 +1,26 @@
+---
+name: check package versions for upgrades
+
+"on":
+  push:
+  schedule:
+    - cron: "0 */6 * * *"
+
+jobs:
+  check-package-updates:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: arduino/setup-task@v2
+        with:
+          repo-token: ${{ github.token }}
+      - uses: actions/checkout@v6
+        with:
+          # We use this specific token to push because the default token
+          # causes the event to build the newly pushed commit not to fire
+          token: ${{ secrets.APORTS_PUSH_TOKEN || github.token }}
+          # pull all branches and tags, we need this to determine if we already have a branch below
+          fetch-depth: 0
+      - env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          scripts/check_updates.sh

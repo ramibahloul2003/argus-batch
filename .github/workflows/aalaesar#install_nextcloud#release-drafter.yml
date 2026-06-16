@@ -1,0 +1,26 @@
+---
+name: Release Draft
+
+"on":
+  push:
+    branches:
+      - main
+
+jobs:
+  labeler:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v6
+
+      - name: Run Labeler
+        uses: crazy-max/ghaction-github-labeler@v6
+        with:
+          skip-delete: true
+
+  draft_release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: release-drafter/release-drafter@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
