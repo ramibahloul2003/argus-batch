@@ -1,9 +1,0 @@
-name: 'Check pull request conventional commits'
-
-"on":
-  pull_request:
-    types: [opened, edited, synchronize, reopened]
-
-jobs:
-  check_pr_compliance:
-    uses: yseop/github-actions-library/.github/workflows/check-pr-compliance.yaml@fc5bfb2240617d52a27df50dc070c83e495d207a # v1.1.0
